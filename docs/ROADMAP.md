@@ -26,7 +26,7 @@ End-to-end pipeline. **Supports save-file import**, not just live event hooks. N
 
 ## Phase 0.1 — Dynastic title-holder scope + local-model backend ✅
 
-Real saves break the broad extractor (a 1034 save has 93k dead characters). Phase 0.1 narrows the eye to **the player's primary title** and adds an offline LLM path.
+Real saves break the broad extractor (a late-game save can carry 90k+ dead characters). Phase 0.1 narrows the eye to **the player's primary title** and adds an offline LLM path.
 
 - [x] **Ollama local-model client** (`OllamaClient` in `agents/base.py`) — implements the `LLMClient` protocol; strips Anthropic-specific `cache_control`; talks to `http://localhost:11434/api/chat` via stdlib `urllib`; defaults to `gemma3:27b`. Local runs report \$0 cost.
 - [x] **CLI:** `--backend {claude,ollama,dry-run}`, `--ollama-model`, `--ollama-url`, `--agent` filter.

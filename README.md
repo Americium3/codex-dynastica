@@ -129,7 +129,7 @@ The smoke test (`tests/test_smoke.py`) exercises the full pipeline end-to-end ag
 
 ## Compatibility & limits
 
-- Tested against CK3 save formats produced by the 1.12.x line, and against modded saves (Chinese-themed `celestial_government` saves verified through 1006 and 1034 in-game dates).
+- Tested against CK3 save formats produced by the 1.12.x line, including ironman saves and a range of modded saves.
 - Ironman binary saves require rakaly (which handles the token table for you).
 - Phase 0 does not yet read schemes, artifacts, struggles, or activities — those slot in as the prompt corpus matures.
 - The dynastic-scope importer assumes `landed_data.domain[0]` is the primary title (CK3's precedence convention).

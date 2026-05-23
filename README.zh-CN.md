@@ -128,7 +128,7 @@ ruff check src tests
 
 ## 兼容性与边界
 
-- 主要针对 CK3 1.12.x 系列存档；亦验证过若干中文风味 mod 存档（`celestial_government`，1006 与 1034 两个游戏内日期）
+- 主要针对 CK3 1.12.x 系列存档，含 ironman 与若干 mod 存档
 - Ironman 二进制存档需要 rakaly
 - Phase 0 暂未读取 schemes / artifacts / struggles / activities
 - 王朝范围抽取器假定 `landed_data.domain[0]` 是主头衔（CK3 的优先级约定）
