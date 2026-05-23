@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/example/ck3-ai-chronicler/schemas/event.schema.json",
+  "title": "ChronicleEvent",
+  "description": "Common interface between save-file import and live in-game hooks. Every event consumed by narrative agents must conform to this schema.",
+  "type": "object",
+  "required": ["event_id", "source", "type", "year", "primary_actors"],
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Stable deterministic id. Format: <source>:<type>:<year>:<hash6>. Used for dedup across import passes."
+    },
+    "source": {
+      "type": "string",
+      "enum": ["save_import", "live_hook"],
+      "description": "Provenance of the event."
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "war_end",
+        "ruler_death",
+        "coronation",
+        "murder",
+        "marriage",
+        "birth",
+        "title_creation",
+        "title_destruction",
+        "religion_change",
+        "heresy_outbreak",
+        "great_holy_war",
+        "scheme_success",
+        "scheme_failure",
+        "artifact_acquired",
+        "disaster"
+      ]
+    },
+    "year": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4000
+    },
+    "month": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 12
+    },
+    "day": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 31
+    },
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "county_id": { "type": "string" },
+        "county_name": { "type": "string" },
+        "duchy_name": { "type": "string" },
+        "kingdom_name": { "type": "string" },
+        "region": { "type": "string", "description": "Free-form geographic descriptor (e.g. 'the Frankish marches')." }
+      }
+    },
+    "primary_actors": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/actor" },
+      "description": "Characters whose deeds define the event. The first is the focal actor."
+    },
+    "secondary_actors": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/actor" }
+    },
+    "factions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "side"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "side": { "type": "string", "enum": ["attacker", "defender", "neutral"] },
+          "religion": { "type": "string" },
+          "culture": { "type": "string" }
+        }
+      },
+      "description": "Used for war_end, great_holy_war, heresy_outbreak."
+    },
+    "religions_involved": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "casualties": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attacker_dead": { "type": "integer", "minimum": 0 },
+        "defender_dead": { "type": "integer", "minimum": 0 },
+        "civilian_dead_estimate": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "outcome": {
+      "type": "string",
+      "enum": ["attacker_victory", "defender_victory", "white_peace", "success", "failure", "natural", "unknown"]
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Free-form flags useful to agents: 'crusade', 'fratricide', 'usurpation', 'martyrdom', etc."
+    },
+    "raw_excerpt": {
+      "type": "string",
+      "description": "Optional raw text from the save file or live log, kept for debugging and as fallback RAG context."
+    },
+    "witnesses": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Character ids who plausibly knew about the event. Drives which agents may reference it."
+    }
+  },
+  "$defs": {
+    "actor": {
+      "type": "object",
+      "required": ["character_id", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "character_id": { "type": "string" },
+        "name": { "type": "string" },
+        "dynasty": { "type": "string" },
+        "culture": { "type": "string" },
+        "religion": { "type": "string" },
+        "titles": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "traits": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "CK3 trait keys (e.g. 'brave', 'craven', 'zealous'). Drives unreliable-historian system in later phases."
+        },
+        "age_at_event": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "_comment": "Synthetic mini-save approximating rakaly JSON shape. Used by tests + as a runnable demo without a real CK3 save.",
+  "meta_data": {
+    "version": "1.12.5",
+    "date": "1086.6.13"
+  },
+  "played_character": "char_100",
+  "living": {
+    "char_100": {
+      "first_name": "Aelred",
+      "dynasty_house": "house_wessex",
+      "culture": "english",
+      "faith": "catholic",
+      "traits": ["brave", "just", "ambitious"],
+      "age": 38
+    },
+    "char_101": {
+      "first_name": "Sweyn",
+      "dynasty_house": "house_jelling",
+      "culture": "norse",
+      "faith": "asatru",
+      "traits": ["wrathful", "strong"],
+      "age": 41
+    },
+    "char_102": {
+      "first_name": "Edith",
+      "dynasty_house": "house_wessex",
+      "culture": "english",
+      "faith": "catholic",
+      "traits": ["chaste", "compassionate"],
+      "age": 29
+    }
+  },
+  "dead_unprunable": {
+    "char_050": {
+      "first_name": "Eadgar",
+      "dynasty_house": "house_wessex",
+      "culture": "english",
+      "faith": "catholic",
+      "traits": ["zealous", "kind"],
+      "age": 62,
+      "dead_data": {
+        "date": "1066.1.5",
+        "reason": "natural"
+      }
+    },
+    "char_051": {
+      "first_name": "Harold",
+      "dynasty_house": "house_godwinson",
+      "culture": "english",
+      "faith": "catholic",
+      "traits": ["brave", "ambitious"],
+      "age": 44,
+      "dead_data": {
+        "date": "1066.10.14",
+        "reason": "battle"
+      }
+    },
+    "char_052": {
+      "first_name": "Cnut the Younger",
+      "dynasty_house": "house_jelling",
+      "culture": "norse",
+      "faith": "asatru",
+      "traits": ["cruel", "drunkard"],
+      "age": 36,
+      "dead_data": {
+        "date": "1078.4.2",
+        "reason": "murder_assassination"
+      }
+    }
+  },
+  "past_wars": {
+    "war_001": {
+      "name": "Norse Invasion of Northumbria",
+      "start_date": "1075.3.1",
+      "end_date": "1076.8.20",
+      "attackers": ["char_101"],
+      "defenders": ["char_100"],
+      "winner": "defender",
+      "casualties": { "attacker": 4200, "defender": 1800 }
+    },
+    "war_002": {
+      "name": "War for the Welsh Marches",
+      "start_date": "1080.5.1",
+      "end_date": "1082.2.14",
+      "attackers": ["char_100"],
+      "defenders": ["char_102"],
+      "winner": "attacker",
+      "casualties": { "attacker": 900, "defender": 2600 }
+    }
+  },
+  "title_history": {
+    "k_england": [
+      {
+        "date": "1066.1.6",
+        "type": "inherited",
+        "holder": "char_051"
+      },
+      {
+        "date": "1066.12.25",
+        "type": "claimed",
+        "holder": "char_100"
+      }
+    ],
+    "d_northumbria": [
+      {
+        "date": "1076.9.1",
+        "type": "granted",
+        "holder": "char_100"
+      }
+    ]
+  }
+}

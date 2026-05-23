@@ -1,0 +1,133 @@
+"""Pydantic models mirroring schemas/event.schema.json.
+
+The JSON Schema is the source of truth; these models exist for ergonomic
+construction and validation inside Python code. Keep them in sync.
+"""
+
+from __future__ import annotations
+
+import hashlib
+from enum import Enum
+from typing import Optional
+
+from pydantic import BaseModel, Field, field_validator
+
+
+class Source(str, Enum):
+    SAVE_IMPORT = "save_import"
+    LIVE_HOOK = "live_hook"
+
+
+class EventType(str, Enum):
+    WAR_END = "war_end"
+    RULER_DEATH = "ruler_death"
+    CORONATION = "coronation"
+    MURDER = "murder"
+    MARRIAGE = "marriage"
+    BIRTH = "birth"
+    TITLE_CREATION = "title_creation"
+    TITLE_DESTRUCTION = "title_destruction"
+    RELIGION_CHANGE = "religion_change"
+    HERESY_OUTBREAK = "heresy_outbreak"
+    GREAT_HOLY_WAR = "great_holy_war"
+    SCHEME_SUCCESS = "scheme_success"
+    SCHEME_FAILURE = "scheme_failure"
+    ARTIFACT_ACQUIRED = "artifact_acquired"
+    DISASTER = "disaster"
+
+
+class FactionSide(str, Enum):
+    ATTACKER = "attacker"
+    DEFENDER = "defender"
+    NEUTRAL = "neutral"
+
+
+class Outcome(str, Enum):
+    ATTACKER_VICTORY = "attacker_victory"
+    DEFENDER_VICTORY = "defender_victory"
+    WHITE_PEACE = "white_peace"
+    SUCCESS = "success"
+    FAILURE = "failure"
+    NATURAL = "natural"
+    UNKNOWN = "unknown"
+
+
+class Location(BaseModel):
+    county_id: Optional[str] = None
+    county_name: Optional[str] = None
+    duchy_name: Optional[str] = None
+    kingdom_name: Optional[str] = None
+    region: Optional[str] = None
+
+
+class Actor(BaseModel):
+    character_id: str
+    name: str
+    dynasty: Optional[str] = None
+    culture: Optional[str] = None
+    religion: Optional[str] = None
+    titles: list[str] = Field(default_factory=list)
+    traits: list[str] = Field(default_factory=list)
+    age_at_event: Optional[int] = None
+
+
+class Faction(BaseModel):
+    name: str
+    side: FactionSide
+    religion: Optional[str] = None
+    culture: Optional[str] = None
+
+
+class Casualties(BaseModel):
+    attacker_dead: Optional[int] = None
+    defender_dead: Optional[int] = None
+    civilian_dead_estimate: Optional[int] = None
+
+
+class ChronicleEvent(BaseModel):
+    event_id: str
+    source: Source
+    type: EventType
+    year: int = Field(ge=1, le=4000)
+    month: Optional[int] = Field(default=None, ge=1, le=12)
+    day: Optional[int] = Field(default=None, ge=1, le=31)
+    location: Optional[Location] = None
+    primary_actors: list[Actor] = Field(min_length=1)
+    secondary_actors: list[Actor] = Field(default_factory=list)
+    factions: list[Faction] = Field(default_factory=list)
+    religions_involved: list[str] = Field(default_factory=list)
+    casualties: Optional[Casualties] = None
+    outcome: Optional[Outcome] = None
+    tags: list[str] = Field(default_factory=list)
+    raw_excerpt: Optional[str] = None
+    witnesses: list[str] = Field(default_factory=list)
+
+    @field_validator("event_id")
+    @classmethod
+    def _validate_event_id_shape(cls, v: str) -> str:
+        parts = v.split(":")
+        if len(parts) != 4:
+            raise ValueError(
+                "event_id must be <source>:<type>:<year>:<hash6>"
+            )
+        return v
+
+
+def make_event_id(
+    source: Source | str,
+    event_type: EventType | str,
+    year: int,
+    *,
+    salt_parts: list[str],
+) -> str:
+    """Build a stable deterministic event_id.
+
+    salt_parts should contain identifiers that uniquely pin the event
+    (e.g. character ids, war id, county id). Order matters — pass them
+    in the same order whenever the same logical event is encountered.
+    """
+    src = source.value if isinstance(source, Source) else source
+    et = event_type.value if isinstance(event_type, EventType) else event_type
+    salt = "|".join(salt_parts)
+    digest = hashlib.sha1(salt.encode("utf-8")).hexdigest()[:6]
+    return f"{src}:{et}:{year}:{digest}"

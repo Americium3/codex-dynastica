@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.python-version
+
+# Tooling
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Project artifacts
+*.db
+*.db-journal
+*.sqlite*
+*.html
+!docs/**/*.html
+chronicle/
+chronicles/
+events.jsonl
+events.jsonl.*
+*.ck3
+*.ck3.json
+.env
+.env.local
+
+# OS
+Thumbs.db
+desktop.ini

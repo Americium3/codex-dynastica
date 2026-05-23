@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ck3-ai-chronicler"
+version = "0.1.0"
+description = "An AI-driven multi-perspective historiography mod companion for Crusader Kings 3."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "CK3 AI Chronicler contributors" }]
+keywords = ["ck3", "crusader-kings", "modding", "llm", "anthropic", "claude"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Games/Entertainment",
+    "Development Status :: 3 - Alpha",
+]
+dependencies = [
+    "pydantic>=2.6",
+    "anthropic>=0.40",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+chronicler = "chronicler.cli:main"
+
+[project.urls]
+"Source" = "https://github.com/USER/ck3-ai-chronicler"
+"Issues" = "https://github.com/USER/ck3-ai-chronicler/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+chronicler = ["py.typed"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501"]
