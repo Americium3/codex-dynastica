@@ -11,7 +11,7 @@ Phase 0 is a small Python package with a clear surface. The most valuable contri
 ## Workflow
 
 ```bash
-git clone https://github.com/USER/ck3-ai-chronicler.git
+git clone https://github.com/EndingEra/codex-dynastica.git
 cd ck3-ai-chronicler
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"

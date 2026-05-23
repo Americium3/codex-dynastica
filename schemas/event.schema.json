@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/example/ck3-ai-chronicler/schemas/event.schema.json",
+  "$id": "https://github.com/EndingEra/codex-dynastica/schemas/event.schema.json",
   "title": "ChronicleEvent",
   "description": "Common interface between save-file import and live in-game hooks. Every event consumed by narrative agents must conform to this schema.",
   "type": "object",
