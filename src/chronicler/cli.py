@@ -127,11 +127,71 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
 
 
 def _cmd_watch(args: argparse.Namespace) -> int:
+    """Tail the live-hook JSONL.
+
+    Phase 0.4: with ``--generate``, each accepted event is immediately
+    fed through the agent pipeline, so chronicles appear as the game is
+    being played — no waiting for save-game-then-import. The
+    ``--min-significance`` knob keeps trivia (an obscure activity, a
+    no-stakes scheme) out of the LLM call while still letting it land
+    in the database.
+    """
+    from .scoring import significance as _significance
     store = Store(args.db)
     print(_("cli.watch.start", path=args.jsonl))
+
+    if args.generate:
+        client, model_override = _make_client(args)
+        only = None
+        if args.agent:
+            only = [a.strip() for a in args.agent.split(",") if a.strip()]
+        agents = build_agents(client, model_override=model_override, only=only)
+        languages = _parse_languages(args.lang)
+    else:
+        agents = []
+        languages = []
+
     def on_event(ev):
-        if store.upsert_event(ev):
-            print(_("cli.watch.event", event_id=ev.event_id, type=ev.type.value, year=ev.year))
+        if not store.upsert_event(ev):
+            return
+        print(_("cli.watch.event", event_id=ev.event_id, type=ev.type.value, year=ev.year))
+        if not args.generate:
+            return
+        score = _significance(ev)
+        if score < args.min_significance:
+            print(
+                f"  [skip-llm] significance={score} < threshold={args.min_significance}",
+                flush=True,
+            )
+            return
+        # Stream: one event through every active agent × every language.
+        # We deliberately call render() directly rather than going through
+        # generate_range() to avoid scanning the whole DB on every line.
+        for agent in agents:
+            for lang in languages:
+                try:
+                    result = agent.render(ev, language=lang)
+                except Exception as exc:  # noqa: BLE001
+                    print(f"  [error] {agent.name}/{lang}: {exc}", flush=True)
+                    continue
+                store.save_chronicle(
+                    event_id=ev.event_id,
+                    agent=agent.name,
+                    language=lang,
+                    title=result.title,
+                    body=result.body,
+                    model=result.model,
+                    input_tokens=result.input_tokens,
+                    output_tokens=result.output_tokens,
+                    cached_input_tokens=result.cached_input_tokens,
+                    cost_usd=result.cost_usd,
+                )
+                print(
+                    f"  [{agent.name}/{lang}] {result.title!r}  "
+                    f"({result.input_tokens}→{result.output_tokens} tok)",
+                    flush=True,
+                )
+
     try:
         watch(args.jsonl, on_event, poll_interval=args.interval)
     except KeyboardInterrupt:
@@ -237,10 +297,47 @@ def build_parser() -> argparse.ArgumentParser:
     ping.add_argument("--db", type=Path, default="chronicle.db")
     ping.set_defaults(func=_cmd_ingest)
 
-    pw = sub.add_parser("watch", help="Tail a live-hook JSONL file continuously.")
+    pw = sub.add_parser(
+        "watch",
+        help="Tail a live-hook JSONL file continuously (Phase 0.4: optionally "
+             "stream-generate chronicles per event).",
+    )
     pw.add_argument("jsonl", type=Path)
     pw.add_argument("--db", type=Path, default="chronicle.db")
     pw.add_argument("--interval", type=float, default=1.0)
+    pw.add_argument(
+        "--generate",
+        action="store_true",
+        help="Run the agent pipeline immediately as each event arrives. "
+             "Without this, watch just upserts to the DB; you'd run "
+             "`chronicler generate` later.",
+    )
+    pw.add_argument(
+        "--min-significance",
+        type=int,
+        default=55,
+        help="Skip the LLM for events scoring below this. Event still lands "
+             "in the DB. Default 55 (matches the medium scope preset).",
+    )
+    pw.add_argument(
+        "--lang",
+        default="en",
+        help="Output languages for --generate. Comma-separated. Default: en.",
+    )
+    pw.add_argument(
+        "--backend",
+        choices=["claude", "ollama", "dry-run"],
+        default=None,
+        help="LLM backend when --generate is set.",
+    )
+    pw.add_argument("--ollama-model", default="gemma3:27b")
+    pw.add_argument("--ollama-url", default="http://localhost:11434")
+    pw.add_argument(
+        "--agent",
+        default=None,
+        help=f"Restrict to a subset of agents (comma-separated). Known: {','.join(sorted(AGENTS_BY_NAME))}.",
+    )
+    pw.add_argument("--dry-run", action="store_true", help="Shortcut for --backend dry-run.")
     pw.set_defaults(func=_cmd_watch)
 
     pg = sub.add_parser("generate", help="Generate chronicles for stored events.")
