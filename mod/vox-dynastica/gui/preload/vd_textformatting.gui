@@ -1,0 +1,37 @@
+# Vox Dynastica — chronicle ink palette
+#
+# Defines #color_vd_* inline format tokens used by the Royal Library loc strings.
+# Lives in gui/preload/ so it's loaded before any window references the tokens.
+#
+# Color is RGB normalized 0-1. Tokens follow vanilla's `color_<name>` convention
+# so they're consumed inline as `#color_vd_ink some text#!`.
+
+textformatting = {
+
+	# 松烟墨 — pine-soot ink. Near-black with the faintest warm undertone,
+	# used for primary headings and entry titles.
+	format = {
+		name = color_vd_ink
+		format = "color:{0.10, 0.08, 0.07}"
+	}
+
+	# 淡墨 — diluted ink, body text. One tier lighter than vd_ink so long
+	# paragraphs don't read as a wall of black.
+	format = {
+		name = color_vd_ink_body
+		format = "color:{0.18, 0.14, 0.11}"
+	}
+
+	# 副墨 — subtitle / footer ink (one tier lighter than body).
+	format = {
+		name = color_vd_ink_subtitle
+		format = "color:{0.30, 0.22, 0.16}"
+	}
+
+	# 朱砂 — cinnabar / vermilion. Traditional ink for year headings, seals,
+	# and date marks on classical Chinese / medieval European chronicles alike.
+	format = {
+		name = color_vd_cinnabar
+		format = "color:{0.55, 0.15, 0.10}"
+	}
+}

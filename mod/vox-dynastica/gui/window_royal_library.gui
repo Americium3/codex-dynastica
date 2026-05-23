@@ -1,0 +1,239 @@
+# Vox Dynastica — Royal Library overlay window (v0.1.2)
+#
+# Mounted as a child widget of window_royal_court (see patched window_royal_court.gui).
+# Visibility is gated by VariableSystem key 'vd_royal_library_open' which the tab
+# button toggles. window_royal_court's on_start clears that key, so re-entering
+# the court always opens fresh with the library closed.
+
+types VoxDynastica
+{
+	type vd_royal_library_window = widget {
+		size = { 900 820 }
+		parentanchor = center
+		layer = middle
+
+		using = Animation_ShowHide_Standard
+
+		# Eat clicks behind the panel so the court scene doesn't capture them
+		background = {
+			color = { 0 0 0 0.001 }
+			margin = { 0 0 }
+		}
+
+		# --- Opaque parchment panel (centered, inset from scroll edges) ---
+		widget = {
+			size = { 860 780 }
+			parentanchor = center
+
+			# Opaque parchment base — pure white 1x1 texture tinted to warm parchment
+			background = {
+				texture = "gfx/interface/colors/white.dds"
+				color = { 0.93 0.85 0.66 1.0 }
+			}
+
+			# Vanilla letter pattern overlay (subtle decorative)
+			background = {
+				texture = "gfx/interface/skinned/window_letter/letter_event_pattern_big.dds"
+				alpha = 0.25
+			}
+
+			# Paper grain
+			background = {
+				texture = "gfx/interface/skinned/window_letter/paper_texture_overlay.dds"
+				alpha = 0.40
+			}
+		}
+
+		# --- Decorative scroll edges (top + bottom) ---
+		icon = {
+			texture = "gfx/interface/skinned/window_letter/letter_event_edge_top.dds"
+			size = { 900 70 }
+			parentanchor = top|hcenter
+			alwaystransparent = yes
+		}
+
+		icon = {
+			texture = "gfx/interface/skinned/window_letter/letter_event_edge_bottom.dds"
+			size = { 900 70 }
+			parentanchor = bottom|hcenter
+			alwaystransparent = yes
+		}
+
+		# --- Close button (top-right, above everything) ---
+		button_close = {
+			parentanchor = top|right
+			position = { -40 50 }
+			onclick = "[GetVariableSystem.Clear( 'vd_royal_library_open' )]"
+		}
+
+		# --- Content ---
+		vbox = {
+			margin = { 80 80 }
+			spacing = 14
+
+			# Header — Paradox_King_Script becomes Lxgw Zhenkai brush-script for
+			# Chinese locales and medieval calligraphy for Latin scripts.
+			text_single = {
+				name = "vd_library_title"
+				text = "VD_ROYAL_LIBRARY_TITLE"
+				font = "MapFont"
+				fontsize = 48
+				# Main title: deep ink, near-black warm
+				text_color = { 0.08 0.06 0.05 1 }
+			}
+
+			text_single = {
+				name = "vd_library_subtitle"
+				text = "VD_ROYAL_LIBRARY_SUBTITLE"
+				font = "MapFont"
+				fontsize = 20
+				# Subtitle: muted ink (one shade lighter than body)
+				text_color = { 0.22 0.16 0.12 1 }
+			}
+
+			icon = {
+				texture = "gfx/interface/skinned/window_letter/marginalia_divider.dds"
+				size = { 700 18 }
+			}
+
+			# Scrollable entry list
+			scrollbox = {
+				name = "vd_entries_scrollbox"
+				layoutpolicy_horizontal = expanding
+				layoutpolicy_vertical = expanding
+
+				blockoverride "scrollbox_content"
+				{
+					vbox = {
+						name = "vd_entries_vbox"
+						layoutpolicy_horizontal = expanding
+						spacing = 14
+						margin = { 6 6 }
+
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_01_year"  } blockoverride "entry_title" { text = "vd_entry_01_title" } blockoverride "entry_body"  { text = "vd_entry_01_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_02_year"  } blockoverride "entry_title" { text = "vd_entry_02_title" } blockoverride "entry_body"  { text = "vd_entry_02_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_03_year"  } blockoverride "entry_title" { text = "vd_entry_03_title" } blockoverride "entry_body"  { text = "vd_entry_03_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_04_year"  } blockoverride "entry_title" { text = "vd_entry_04_title" } blockoverride "entry_body"  { text = "vd_entry_04_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_05_year"  } blockoverride "entry_title" { text = "vd_entry_05_title" } blockoverride "entry_body"  { text = "vd_entry_05_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_06_year"  } blockoverride "entry_title" { text = "vd_entry_06_title" } blockoverride "entry_body"  { text = "vd_entry_06_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_07_year"  } blockoverride "entry_title" { text = "vd_entry_07_title" } blockoverride "entry_body"  { text = "vd_entry_07_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_08_year"  } blockoverride "entry_title" { text = "vd_entry_08_title" } blockoverride "entry_body"  { text = "vd_entry_08_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_09_year"  } blockoverride "entry_title" { text = "vd_entry_09_title" } blockoverride "entry_body"  { text = "vd_entry_09_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_10_year"  } blockoverride "entry_title" { text = "vd_entry_10_title" } blockoverride "entry_body"  { text = "vd_entry_10_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_11_year"  } blockoverride "entry_title" { text = "vd_entry_11_title" } blockoverride "entry_body"  { text = "vd_entry_11_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_12_year"  } blockoverride "entry_title" { text = "vd_entry_12_title" } blockoverride "entry_body"  { text = "vd_entry_12_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_13_year"  } blockoverride "entry_title" { text = "vd_entry_13_title" } blockoverride "entry_body"  { text = "vd_entry_13_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_14_year"  } blockoverride "entry_title" { text = "vd_entry_14_title" } blockoverride "entry_body"  { text = "vd_entry_14_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_15_year"  } blockoverride "entry_title" { text = "vd_entry_15_title" } blockoverride "entry_body"  { text = "vd_entry_15_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_16_year"  } blockoverride "entry_title" { text = "vd_entry_16_title" } blockoverride "entry_body"  { text = "vd_entry_16_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_17_year"  } blockoverride "entry_title" { text = "vd_entry_17_title" } blockoverride "entry_body"  { text = "vd_entry_17_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_18_year"  } blockoverride "entry_title" { text = "vd_entry_18_title" } blockoverride "entry_body"  { text = "vd_entry_18_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_19_year"  } blockoverride "entry_title" { text = "vd_entry_19_title" } blockoverride "entry_body"  { text = "vd_entry_19_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_20_year"  } blockoverride "entry_title" { text = "vd_entry_20_title" } blockoverride "entry_body"  { text = "vd_entry_20_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_21_year"  } blockoverride "entry_title" { text = "vd_entry_21_title" } blockoverride "entry_body"  { text = "vd_entry_21_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_22_year"  } blockoverride "entry_title" { text = "vd_entry_22_title" } blockoverride "entry_body"  { text = "vd_entry_22_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_23_year"  } blockoverride "entry_title" { text = "vd_entry_23_title" } blockoverride "entry_body"  { text = "vd_entry_23_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_24_year"  } blockoverride "entry_title" { text = "vd_entry_24_title" } blockoverride "entry_body"  { text = "vd_entry_24_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_25_year"  } blockoverride "entry_title" { text = "vd_entry_25_title" } blockoverride "entry_body"  { text = "vd_entry_25_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_26_year"  } blockoverride "entry_title" { text = "vd_entry_26_title" } blockoverride "entry_body"  { text = "vd_entry_26_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_27_year"  } blockoverride "entry_title" { text = "vd_entry_27_title" } blockoverride "entry_body"  { text = "vd_entry_27_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_28_year"  } blockoverride "entry_title" { text = "vd_entry_28_title" } blockoverride "entry_body"  { text = "vd_entry_28_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_29_year"  } blockoverride "entry_title" { text = "vd_entry_29_title" } blockoverride "entry_body"  { text = "vd_entry_29_body"  } }
+						vd_library_entry = { blockoverride "entry_year"  { text = "vd_entry_30_year"  } blockoverride "entry_title" { text = "vd_entry_30_title" } blockoverride "entry_body"  { text = "vd_entry_30_body"  } }
+					}
+				}
+			}
+
+			# Footer
+			text_single = {
+				text = "VD_ROYAL_LIBRARY_FOOTER"
+				font = "MapFont"
+				fontsize = 16
+				text_color = { 0.40 0.25 0.10 0.85 }
+				align = right
+			}
+		}
+	}
+
+	# A single chronicle entry — auto-sized vbox card.
+	# Critical: must be a vbox (not widget), otherwise children stack at y=0.
+	# Layout:
+	#   [          Title (centered)            ]
+	#   [1066]  Body text body text body...
+	#           more body text...
+	# Year is in an hbox with body so it top-aligns to body's first line.
+	# Four corner ornaments are absolutely positioned via parentanchor.
+	type vd_library_entry = vbox {
+		layoutpolicy_horizontal = expanding
+		spacing = 0
+
+		# Card fill — parchment tone, semi-transparent so the bamboo decoration
+		# on the main panel breathes through softly.
+		background = {
+			texture = "gfx/interface/colors/white.dds"
+			color = { 0.95 0.87 0.68 0.72 }
+			margin = { -6 -4 }
+		}
+
+		# Content
+		vbox = {
+			layoutpolicy_horizontal = expanding
+			spacing = 6
+			margin = { 16 12 }
+
+			# Top decorative divider (marginalia from vanilla letter skin).
+			# Wrapped in a layout widget so it actually centers horizontally
+			# (vbox children left-align by default; parentanchor on a bare
+			# icon in vbox doesn't override that).
+			widget = {
+				layoutpolicy_horizontal = expanding
+				size = { 0 14 }
+
+				icon = {
+					texture = "gfx/interface/skinned/window_letter/marginalia_divider.dds"
+					size = { 380 14 }
+					parentanchor = center
+				}
+			}
+
+			# Title (full width, centered)
+			text_single = {
+				block "entry_title" {
+					text = ""
+				}
+				font = "MapFont"
+				fontsize = 26
+				align = hcenter|nobaseline
+			}
+
+			# Year + body row — year top-aligns to body's first line
+			hbox = {
+				layoutpolicy_horizontal = expanding
+				spacing = 18
+
+				# Year column
+				text_single = {
+					block "entry_year" {
+						text = ""
+					}
+					font = "MapFont"
+					fontsize = 32
+					minimumsize = { 80 -1 }
+					maximumsize = { 80 -1 }
+					align = right|nobaseline
+				}
+
+				# Body
+				text_multi = {
+					block "entry_body" {
+						text = ""
+					}
+					autoresize = yes
+					max_width = 560
+					fontsize = 15
+					align = left
+				}
+			}
+		}
+	}
+}

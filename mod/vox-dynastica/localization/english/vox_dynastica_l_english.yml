@@ -1,0 +1,120 @@
+﻿l_english:
+ # ============================================================
+ # Vox Dynastica — Royal Library
+ # Text colour is applied inline via #color_vd_* tags
+ # (defined in common/named_colors/vd_ink_colors.txt).
+ # ============================================================
+
+ # Tab strip (court window) — uncoloured, vanilla dark tooltip frame
+ VD_ROYAL_COURT_TAB_LIBRARY:0 "Royal Library"
+ VD_ROYAL_COURT_TAB_LIBRARY_DESC:0 "Open the dynastic chronicle — a living history of your house, written by court historians and remembered by the realm."
+
+ # Library window chrome
+ VD_ROYAL_LIBRARY_TITLE:0 "#color_vd_ink The Royal Library#!"
+ VD_ROYAL_LIBRARY_SUBTITLE:0 "#color_vd_ink_subtitle Chronicles of the reigning house, set down by hand.#!"
+ VD_ROYAL_LIBRARY_FOOTER:0 "#color_vd_ink_subtitle — compiled by the court historians of your dynasty#!"
+
+ # ------------------------------------------------------------
+ # Entry slots 01..30 — REVERSE CHRONOLOGICAL ORDER
+ # Slot 01 = newest entry (rendered at top of the library)
+ # Slot 30 = oldest entry (rendered at bottom)
+ # Python emit-loc must respect this convention.
+ # Phase 1 ships 6 curated samples; emit-loc will rewrite at runtime.
+ # ------------------------------------------------------------
+
+ vd_entry_01_year:0 "#color_vd_cinnabar 1099#!"
+ vd_entry_01_title:0 "#color_vd_ink Of the Passing of the First King#!"
+ vd_entry_01_body:0 "#color_vd_ink_body In the thirty-third year of his reign, our king laid down his life peacefully in the chapel of his fathers. The crown passed to his son without dispute, which the chroniclers count a marvel, for in other realms such a passing has brought forth the sword.#!"
+
+ vd_entry_02_year:0 "#color_vd_cinnabar 1091#!"
+ vd_entry_02_title:0 "#color_vd_ink Of the Council of the Great Lords#!"
+ vd_entry_02_body:0 "#color_vd_ink_body The king did call his vassals to council in the high hall, that the laws might be set in writing. There was much dispute over the rights of the church, and the bishop of the western see departed in anger; yet at the last all set their seals to the document, which is preserved in the library to this day.#!"
+
+ vd_entry_03_year:0 "#color_vd_cinnabar 1083#!"
+ vd_entry_03_title:0 "#color_vd_ink Of the Birth of the Heir#!"
+ vd_entry_03_body:0 "#color_vd_ink_body From the king's second marriage came a son, whom the chroniclers name as the Hope of the House. The omens were favourable — a comet stood above the chamber on the night of his birth, and the river ran clear for three days following.#!"
+
+ vd_entry_04_year:0 "#color_vd_cinnabar 1078#!"
+ vd_entry_04_title:0 "#color_vd_ink Of the Great Sickness#!"
+ vd_entry_04_body:0 "#color_vd_ink_body A grievous fever came upon the court in the twelfth year. The queen was taken into the grave, and after her many of the children. The king did vow a pilgrimage, and rode forth in sackcloth as a common man, that the Lord might be merciful to what remained of his house.#!"
+
+ vd_entry_05_year:0 "#color_vd_cinnabar 1071#!"
+ vd_entry_05_title:0 "#color_vd_ink Of the War Against the Heathen Marches#!"
+ vd_entry_05_body:0 "#color_vd_ink_body Five summers after the crowning, our king marched east against the heathen who had burned the abbey of St. Eadwin. The host returned in the autumn with much spoil, yet also with great grief, for the king's brother fell at the river-crossing and was buried where he stood.#!"
+
+ vd_entry_06_year:0 "#color_vd_cinnabar 1066#!"
+ vd_entry_06_title:0 "#color_vd_ink Of the Coronation of the First King#!"
+ vd_entry_06_body:0 "#color_vd_ink_body In this year the realm was gathered together, and a crown was set upon the brow of our first king. The bishops anointed him with holy oil, and the great lords swore their oaths upon relics of the saints. A feast of forty days followed, and the poor were fed at the gates.#!"
+
+ vd_entry_07_year:0 ""
+ vd_entry_07_title:0 ""
+ vd_entry_07_body:0 ""
+ vd_entry_08_year:0 ""
+ vd_entry_08_title:0 ""
+ vd_entry_08_body:0 ""
+ vd_entry_09_year:0 ""
+ vd_entry_09_title:0 ""
+ vd_entry_09_body:0 ""
+ vd_entry_10_year:0 ""
+ vd_entry_10_title:0 ""
+ vd_entry_10_body:0 ""
+ vd_entry_11_year:0 ""
+ vd_entry_11_title:0 ""
+ vd_entry_11_body:0 ""
+ vd_entry_12_year:0 ""
+ vd_entry_12_title:0 ""
+ vd_entry_12_body:0 ""
+ vd_entry_13_year:0 ""
+ vd_entry_13_title:0 ""
+ vd_entry_13_body:0 ""
+ vd_entry_14_year:0 ""
+ vd_entry_14_title:0 ""
+ vd_entry_14_body:0 ""
+ vd_entry_15_year:0 ""
+ vd_entry_15_title:0 ""
+ vd_entry_15_body:0 ""
+ vd_entry_16_year:0 ""
+ vd_entry_16_title:0 ""
+ vd_entry_16_body:0 ""
+ vd_entry_17_year:0 ""
+ vd_entry_17_title:0 ""
+ vd_entry_17_body:0 ""
+ vd_entry_18_year:0 ""
+ vd_entry_18_title:0 ""
+ vd_entry_18_body:0 ""
+ vd_entry_19_year:0 ""
+ vd_entry_19_title:0 ""
+ vd_entry_19_body:0 ""
+ vd_entry_20_year:0 ""
+ vd_entry_20_title:0 ""
+ vd_entry_20_body:0 ""
+ vd_entry_21_year:0 ""
+ vd_entry_21_title:0 ""
+ vd_entry_21_body:0 ""
+ vd_entry_22_year:0 ""
+ vd_entry_22_title:0 ""
+ vd_entry_22_body:0 ""
+ vd_entry_23_year:0 ""
+ vd_entry_23_title:0 ""
+ vd_entry_23_body:0 ""
+ vd_entry_24_year:0 ""
+ vd_entry_24_title:0 ""
+ vd_entry_24_body:0 ""
+ vd_entry_25_year:0 ""
+ vd_entry_25_title:0 ""
+ vd_entry_25_body:0 ""
+ vd_entry_26_year:0 ""
+ vd_entry_26_title:0 ""
+ vd_entry_26_body:0 ""
+ vd_entry_27_year:0 ""
+ vd_entry_27_title:0 ""
+ vd_entry_27_body:0 ""
+ vd_entry_28_year:0 ""
+ vd_entry_28_title:0 ""
+ vd_entry_28_body:0 ""
+ vd_entry_29_year:0 ""
+ vd_entry_29_title:0 ""
+ vd_entry_29_body:0 ""
+ vd_entry_30_year:0 ""
+ vd_entry_30_title:0 ""
+ vd_entry_30_body:0 ""

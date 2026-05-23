@@ -1,0 +1,120 @@
+﻿l_simp_chinese:
+ # ============================================================
+ # Vox Dynastica — 王室图书馆
+ # 文字颜色通过 #color_vd_* 内联标签控制
+ # （定义于 common/named_colors/vd_ink_colors.txt）
+ # ============================================================
+
+ # 朝廷窗口顶部页签 — 不染色，沿用 vanilla 深色 tooltip
+ VD_ROYAL_COURT_TAB_LIBRARY:0 "王室图书馆"
+ VD_ROYAL_COURT_TAB_LIBRARY_DESC:0 "翻开王朝史册——由宫廷史官执笔、为后世所记诵的家族编年。"
+
+ # 图书馆窗口
+ VD_ROYAL_LIBRARY_TITLE:0 "#color_vd_ink 王室图书馆#!"
+ VD_ROYAL_LIBRARY_SUBTITLE:0 "#color_vd_ink_subtitle 在位王朝之实录，皆出史官之手。#!"
+ VD_ROYAL_LIBRARY_FOOTER:0 "#color_vd_ink_subtitle ——本朝史官奉敕编修#!"
+
+ # ------------------------------------------------------------
+ # 条目槽 01..30 — 时间倒序排列
+ # 槽 01 = 最新事件（渲染在图书馆最上方）
+ # 槽 30 = 最旧事件（渲染在最下方）
+ # Python emit-loc 必须遵循此约定
+ # Phase 1 预置 6 条样例，emit-loc 落地后实时改写
+ # ------------------------------------------------------------
+
+ vd_entry_01_year:0 "#color_vd_cinnabar 1099#!"
+ vd_entry_01_title:0 "#color_vd_ink 开国之君驾崩#!"
+ vd_entry_01_body:0 "#color_vd_ink_body 践祚三十三年，王安寝于先祖之礼拜堂。冠冕传于其子，未起争端，史官以为奇——他邦之承嗣，每以兵戎决之。#!"
+
+ vd_entry_02_year:0 "#color_vd_cinnabar 1091#!"
+ vd_entry_02_title:0 "#color_vd_ink 群臣议法#!"
+ vd_entry_02_body:0 "#color_vd_ink_body 王召诸侯于明堂，欲笔之于书以为成法。教权之争颇剧，西境主教愤而离席；然终皆署印于其上，此卷今藏于本馆。#!"
+
+ vd_entry_03_year:0 "#color_vd_cinnabar 1083#!"
+ vd_entry_03_title:0 "#color_vd_ink 嗣子之生#!"
+ vd_entry_03_body:0 "#color_vd_ink_body 王再娶之妃诞下一子，史官称之为「家国之望」。其兆甚祥——是夜彗星见于产室之上，河水清者三日不浑。#!"
+
+ vd_entry_04_year:0 "#color_vd_cinnabar 1078#!"
+ vd_entry_04_title:0 "#color_vd_ink 宫中大疫#!"
+ vd_entry_04_body:0 "#color_vd_ink_body 践祚十二年，宫中大热病作。王后崩，幼子多殁。王乃发愿苦行朝圣，披麻执素而出，与庶人无异，唯祈上主怜其孑遗。#!"
+
+ vd_entry_05_year:0 "#color_vd_cinnabar 1071#!"
+ vd_entry_05_title:0 "#color_vd_ink 征东境异教之乱#!"
+ vd_entry_05_body:0 "#color_vd_ink_body 践祚五年，王亲率王师东征——盖异教焚毁圣艾德温修道院故也。秋还，所获颇丰；然亦多哀，王弟殁于渡河之役，即葬于陨地。#!"
+
+ vd_entry_06_year:0 "#color_vd_cinnabar 1066#!"
+ vd_entry_06_title:0 "#color_vd_ink 记开国之君践祚#!"
+ vd_entry_06_body:0 "#color_vd_ink_body 是岁，海内归心，加冕于我祖。教宗以圣油涂之，群臣对圣髑而誓。乃设大宴四十日，城门之下贫者皆得食。#!"
+
+ vd_entry_07_year:0 ""
+ vd_entry_07_title:0 ""
+ vd_entry_07_body:0 ""
+ vd_entry_08_year:0 ""
+ vd_entry_08_title:0 ""
+ vd_entry_08_body:0 ""
+ vd_entry_09_year:0 ""
+ vd_entry_09_title:0 ""
+ vd_entry_09_body:0 ""
+ vd_entry_10_year:0 ""
+ vd_entry_10_title:0 ""
+ vd_entry_10_body:0 ""
+ vd_entry_11_year:0 ""
+ vd_entry_11_title:0 ""
+ vd_entry_11_body:0 ""
+ vd_entry_12_year:0 ""
+ vd_entry_12_title:0 ""
+ vd_entry_12_body:0 ""
+ vd_entry_13_year:0 ""
+ vd_entry_13_title:0 ""
+ vd_entry_13_body:0 ""
+ vd_entry_14_year:0 ""
+ vd_entry_14_title:0 ""
+ vd_entry_14_body:0 ""
+ vd_entry_15_year:0 ""
+ vd_entry_15_title:0 ""
+ vd_entry_15_body:0 ""
+ vd_entry_16_year:0 ""
+ vd_entry_16_title:0 ""
+ vd_entry_16_body:0 ""
+ vd_entry_17_year:0 ""
+ vd_entry_17_title:0 ""
+ vd_entry_17_body:0 ""
+ vd_entry_18_year:0 ""
+ vd_entry_18_title:0 ""
+ vd_entry_18_body:0 ""
+ vd_entry_19_year:0 ""
+ vd_entry_19_title:0 ""
+ vd_entry_19_body:0 ""
+ vd_entry_20_year:0 ""
+ vd_entry_20_title:0 ""
+ vd_entry_20_body:0 ""
+ vd_entry_21_year:0 ""
+ vd_entry_21_title:0 ""
+ vd_entry_21_body:0 ""
+ vd_entry_22_year:0 ""
+ vd_entry_22_title:0 ""
+ vd_entry_22_body:0 ""
+ vd_entry_23_year:0 ""
+ vd_entry_23_title:0 ""
+ vd_entry_23_body:0 ""
+ vd_entry_24_year:0 ""
+ vd_entry_24_title:0 ""
+ vd_entry_24_body:0 ""
+ vd_entry_25_year:0 ""
+ vd_entry_25_title:0 ""
+ vd_entry_25_body:0 ""
+ vd_entry_26_year:0 ""
+ vd_entry_26_title:0 ""
+ vd_entry_26_body:0 ""
+ vd_entry_27_year:0 ""
+ vd_entry_27_title:0 ""
+ vd_entry_27_body:0 ""
+ vd_entry_28_year:0 ""
+ vd_entry_28_title:0 ""
+ vd_entry_28_body:0 ""
+ vd_entry_29_year:0 ""
+ vd_entry_29_title:0 ""
+ vd_entry_29_body:0 ""
+ vd_entry_30_year:0 ""
+ vd_entry_30_title:0 ""
+ vd_entry_30_body:0 ""
