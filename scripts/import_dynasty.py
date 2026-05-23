@@ -87,6 +87,7 @@ from chronicler.schema import (  # noqa: E402
     Source,
     make_event_id,
 )
+from chronicler.scoring import resolve_scope, significance as _significance  # noqa: E402
 from chronicler.storage import Store  # noqa: E402
 
 
@@ -1173,57 +1174,8 @@ def _stamp_era_mood(
 
 
 # ---------- Phase 0.3: significance-based selection ----------
-
-# Higher = more newsworthy. The chronicle keeps the top-N by this score,
-# tie-broken by recency. Calibrated so that an ordinary house-member death
-# loses to a battle the holder commanded, but a holder's own death beats
-# almost anything else.
-SIGNIFICANCE: dict[EventType, int] = {
-    EventType.MURDER:             100,
-    EventType.RULER_DEATH:         95,
-    EventType.WAR_END:             92,
-    EventType.GREAT_HOLY_WAR:      92,
-    EventType.CORONATION:          88,
-    EventType.BATTLE:              82,
-    EventType.HERESY_OUTBREAK:     78,
-    EventType.RELIGION_CHANGE:     74,
-    EventType.TITLE_CREATION:      70,
-    EventType.TITLE_DESTRUCTION:   70,
-    EventType.BIRTH:               64,   # heir; ordinary house births score lower via tag bump
-    EventType.MARRIAGE:            60,
-    EventType.ARTIFACT_ACQUIRED:   55,
-    EventType.DISASTER:            52,
-    EventType.SCHEME_SUCCESS:      50,
-    EventType.SCHEME_FAILURE:      50,
-    EventType.SCHEME_ACTIVE:       42,
-    EventType.ACTIVITY:            38,
-    EventType.STORY_EVENT:         34,
-}
-
-
-def _significance(e: ChronicleEvent) -> int:
-    """Score an event for selection ranking.
-
-    Base score comes from the type table. We then nudge it based on tags:
-      * ``heir`` tag → +12 (heir births/deaths beat ordinary house events)
-      * ``title:`` tag (primary title) → +6 (spine events beat foreign events)
-      * ``notable_ruler`` tag (wide-scope foreign death) → −15
-      * ``house_member`` tag without ``heir`` → −8 (great-aunt's death is a footnote)
-      * artifact ``rarity:famed`` / ``rarity:illustrious`` → +10
-    """
-    base = SIGNIFICANCE.get(e.type, 30)
-    tags = set(e.tags or [])
-    if "heir" in tags:
-        base += 12
-    if any(t.startswith("title:") for t in tags):
-        base += 6
-    if "notable_ruler" in tags:
-        base -= 15
-    if "house_member" in tags and "heir" not in tags:
-        base -= 8
-    if "rarity:famed" in tags or "rarity:illustrious" in tags:
-        base += 10
-    return base
+# (SIGNIFICANCE table + scoring helper moved to chronicler.scoring in
+# Phase 0.4 so the live-hook watcher can apply the same ranking.)
 
 
 def _select_events(
@@ -1280,12 +1232,13 @@ def main():
     ap.add_argument("--db", type=Path, required=True)
     ap.add_argument("--from-year", type=int, default=None)
     ap.add_argument("--to-year", type=int, default=None)
-    ap.add_argument("--max-per-type", type=int, default=3,
-                    help="Keep at most N events of each EventType (newest first). "
-                         "Phase 0.3 default lowered from 6 → 3.")
-    ap.add_argument("--max-events", type=int, default=12,
+    ap.add_argument("--max-per-type", type=int, default=None,
+                    help="Per-EventType cap (newest first). Default comes from "
+                         "the scope preset: narrow=2, dynastic/middle=3, wide=5.")
+    ap.add_argument("--max-events", type=int, default=None,
                     help="Global cap. After per-type trimming, keep the top N "
-                         "by significance score (Phase 0.3). Default 12.")
+                         "by significance score. Default from scope preset: "
+                         "narrow=6, dynastic/middle=12, wide=24.")
     ap.add_argument("--max-artifacts", type=int, default=4,
                     help="Hard cap on artifact extractor (saves can hold 6000+).")
     ap.add_argument("--player", type=int, default=None,
@@ -1295,11 +1248,13 @@ def main():
         choices=["dynastic", "narrow", "middle", "wide"],
         default="dynastic",
         help=(
-            "How wide the chronicle's eye should be. "
-            "dynastic = primary-title spine only (default). "
-            "narrow = player's own house births/deaths/marriages. "
-            "middle = narrow + dynastic. "
-            "wide = middle + every notable landed death in window."
+            "How wide the chronicle's eye should be — and how strict the "
+            "cutoff. Each preset bundles a scope and a strictness profile: "
+            "narrow = house only, very strict (≤6 events). "
+            "dynastic = primary-title spine, medium (Phase 0.3 default, ≤12). "
+            "middle = narrow + dynastic, medium (≤12). "
+            "wide = middle + every notable landed death, looser (≤24). "
+            "Override the strictness via --max-per-type / --max-events."
         ),
     )
     args = ap.parse_args()
@@ -1373,8 +1328,20 @@ def main():
     print(f"[info] primary title: {title_label} ({title_key}, id={primary_id})", flush=True)
     print(f"[info] house: {house_name}", flush=True)
     print(f"[info] window: {args.from_year}–{args.to_year} AD  (save date: {save_date})", flush=True)
-    print(f"[info] cap per type: {args.max_per_type}", flush=True)
-    print(f"[info] scope: {args.scope}", flush=True)
+    # Phase 0.4: resolve --scope → strictness preset, then apply any CLI
+    # overrides. The preset bundles (max_per_type, max_events) so the
+    # player has one knob in the common case.
+    preset = resolve_scope(args.scope)
+    if args.max_per_type is None:
+        args.max_per_type = preset.max_per_type or 3
+    if args.max_events is None:
+        args.max_events = preset.max_events or 12
+    print(
+        f"[info] scope={args.scope} preset(max_per_type={preset.max_per_type}, "
+        f"max_events={preset.max_events}) → effective "
+        f"(max_per_type={args.max_per_type}, max_events={args.max_events})",
+        flush=True,
+    )
 
     # Scope flags. ``dynastic`` is the Phase 0.1 default — primary-title
     # spine. ``narrow`` strips that down to the player's house alone.

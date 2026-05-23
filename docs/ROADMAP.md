@@ -66,6 +66,18 @@ Earlier runs surfaced ~24–27 events per chronicle — too many to read at a si
 - [x] **Imagery library ×20** — Both bilingual prompts now carry massively expanded eight-category palettes (weather/food/animals/plants/tools/household/people/seasons): the English bank grew from ~90 → ~1200 items, the Chinese bank from ~90 → ~900 items. Words sub-grouped within each category so the singer can pick "early spring" vs "deep winter" cleanly. Anti-refrain rule kept and tightened.
 - [ ] Court Historian likewise should weight tone by `era_mood` (currently only the ballad reads it). Deferred to a small follow-up — the court voice is supposed to stay measured regardless of era, so the bias is more subtle there and needs its own pass.
 
+## Phase 0.4 — Real-time event ingest + tiered selectivity ✅
+
+Save-file imports are great for retrospectives but force a save-then-import dance during active play, and drop a whole batch on the LLM at once. Phase 0.4 reframes the pipeline around the live-hook path that's been sketched since Phase 0 and recalibrates `--scope` so each preset bundles its own strictness.
+
+- [x] **Per-scope strictness presets** — `--scope` now carries both *what to pull* and *how strict the cutoff is*. Phase 0.3 settings become the **medium** tier (matches `dynastic` / `middle`); `narrow` tightens (max_per_type=2, max_events=6, min_live_significance=70); `wide` loosens (max_per_type=5, max_events=24, min_live_significance=40). `--max-per-type` / `--max-events` still override.
+- [x] **Significance scoring lifted into `chronicler.scoring`** — the Phase 0.3 `SIGNIFICANCE` table + tag-aware `significance()` are now in a reusable module so both the save importer and the live-hook watcher rank events the same way.
+- [x] **`chronicler watch --generate`** — events are narrated as they arrive, one LLM call per event instead of a batch at end-of-session. Backends: `claude` / `ollama` / `dry-run`. Languages and agents are configurable just like in `generate`.
+- [x] **`--min-significance` LLM-cost gate** — events scoring below the threshold still hit the database (so future retrospectives include them) but skip the LLM call. Default 55 (matches medium-scope live threshold).
+- [x] **Architecture spec** (`docs/REALTIME_INGEST.md`, EN + zh-CN) — documents the CK3-side contract (`debug_log` from `scripted_effect`), the `VD_EVENT|` sentinel, the `script.log` → `events.jsonl` bridge, the planned `on_action` set, and which pieces ship in which phase.
+- [ ] **CK3 mod `.txt` files** — actual `on_action` and `scripted_effect` definitions. Deferred to Phase 1, where they ride alongside the in-game UI work. The watcher pipeline is fully testable today by hand-writing JSONL lines.
+- [ ] **`scripts/extract_vd_events.py`** — companion `script.log` → `events.jsonl` extractor. Deferred to Phase 1.
+
 ## Phase 1 — In-game Royal Library UI + cloud-API picker
 
 Hard requirement: **visually indistinguishable from vanilla CK3**. It should feel like an official DLC, not a modder add-on. Adds RimTalk-style provider/key/model selection in mod settings so players can use any cloud LLM (or keep using their local Ollama).

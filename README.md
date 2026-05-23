@@ -9,25 +9,30 @@ CK3's biggest narrative gap is that 300 years of play produce no real *history*.
 ## Status
 
 - **Phase 0 — Court Historian + Peasant Ballad MVP.** ✅ done.
-- **Phase 0.1 — Dynastic title-holder scope + local-model (Ollama) backend.** ✅ done (this revision).
-- **Phase 0.2 — Player-selectable scope: narrow / middle / wide.** 🚧 planned.
+- **Phase 0.1 — Dynastic title-holder scope + local-model (Ollama) backend.** ✅ done.
+- **Phase 0.2 — Player-selectable scope (narrow / middle / wide) + shorter chronicles.** ✅ done.
+- **Phase 0.3 — Significance-based event selection + `era_mood` ballad bias + imagery library ×20.** ✅ done.
+- **Phase 0.4 — Real-time event ingest via live-hook + tiered selectivity presets.** ✅ done (this revision).
 - **Phase 1 — In-game Royal Library UI (vanilla-fidelity) + cloud-API picker (RimTalk style).** 🚧 not started.
 - **Phase 2 — Enemy + Church perspectives.** 🚧 not started.
 - **Phase 3 — Historical drift, physical carriers, gameplay reverse hooks.** 🚧 not started.
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the full plan.
 
-## Features (Phase 0 + 0.1)
+## Features (Phase 0 → 0.4)
 
 - **Save file import** — converts a `.ck3` save to events via [rakaly](https://github.com/rakaly), then extracts deaths, wars, coronations, marriages, births, and trait events.
-- **Dynastic-scope extractor** — `scripts/import_dynasty.py` walks the **player's primary title** (`landed_data.domain[0]`) and pulls every event hanging off that throne: title-holder deaths, first-heir birth/death, marriages, wars fought on behalf of the title, and significant health/aging traits of the current holder.
-- **Live JSONL ingest** — tail events written by a CK3-side hook script (mod side to follow in Phase 1).
-- **Two narrative voices** — Court Historian (sober archaic English / 半文言史笔) and Peasant Ballad (folk-Saxon / 《诗经·国风》四言), each driven by a long cached system prompt.
+- **Dynastic-scope extractor** — `scripts/import_dynasty.py` walks the **player's primary title** (`landed_data.domain[0]`) and pulls every event hanging off that throne: title-holder deaths, first-heir birth/death, marriages, battles, schemes, stories, artifacts, activities, and significant health/aging traits of the current holder.
+- **Tiered scope presets** — `--scope {narrow,dynastic,middle,wide}` bundles *what to pull* and *how strict the cutoff is*. `narrow` is a tight family-album view (~6 events); `dynastic` / `middle` is the calibrated default (~12 events); `wide` is a world-scale chronicle (~24 events). Phase 0.4.
+- **Real-time live-hook ingest** — `chronicler watch <jsonl> --db ... --generate` tails a JSONL file the running game writes, validates each line, stores it, and immediately narrates it through every agent and language. No save-game-then-import dance. `--min-significance` gates the LLM call so trivia still lands in the DB but doesn't burn tokens. See [docs/REALTIME_INGEST.md](docs/REALTIME_INGEST.md) for the CK3 mod-side contract.
+- **Era-mood-aware ballads** — every event carries an `era_mood` (turbulent / ordinary / peaceful) computed from the ±15-year density of wars / deaths / disasters in the chronicle. The peasant ballad combines the event's base tone with the era weather: a birth in a turbulent decade still rejoices but admits the missing brother; a death in peacetime carries unusual weight. Phase 0.3.
+- **Significance-ranked event selection** — a tag-aware scoring table (`chronicler.scoring.SIGNIFICANCE`) ranks candidate events; the chronicle keeps the top N. Used by both the save importer (post-trim) and the live-hook watcher (LLM-cost gate). Phase 0.3 + 0.4.
+- **Two narrative voices** — Court Historian (sober archaic English / 半文言史笔) and Peasant Ballad (folk-Saxon / 《诗经·国风》四言), each driven by a long cached system prompt. Phase 0.3 expanded the ballad's eight-category imagery library ~20× so the singer doesn't repeat the same five words across many songs.
 - **Three LLM backends** — Anthropic Claude (cloud), **Ollama local models** (e.g. `gemma3:27b`, no API key required), or DryRun mock (offline).
 - **Prompt caching (Claude)** — system prompts are marked `cache_control: ephemeral`, repeat calls within the 5-minute TTL pay 10× less.
 - **Cost accounting** — every chronicle row tracks input/output/cached tokens and a dollar estimate. Local models report \$0.
 - **Idempotent storage** — re-importing the same save does not duplicate events; re-running `generate` skips already-chronicled `(event, agent, language)` triples unless `--force`.
-- **Bilingual everything** — every user-facing surface (CLI, HTML chrome, LLM output) ships in **EN + zh-CN** simultaneously.
+- **Bilingual everything** — every user-facing surface (CLI, HTML chrome, LLM output, ROADMAP, docs) ships in **EN + zh-CN** simultaneously.
 - **Static HTML output** — parchment-styled dual-column reader, opens in any browser.
 
 ## Quickstart
@@ -71,15 +76,23 @@ chronicler render --db campaign.db --out campaign_zh.html --lang zh \
     --title "韦塞克斯王朝编年"
 ```
 
-### Watching a live game
+### Watching a live game (Phase 0.4)
 
-Once the in-game mod side lands (Phase 1), it will write events to `events.jsonl`. Until then you can test with the bundled fixture:
+The game (once the Phase 1 mod ships) writes events to `events.jsonl` via `debug_log` from `scripted_effect`. Until then you can drive the pipeline by hand: writing JSONL lines to the file is exactly what the mod will do, just slower.
 
 ```bash
-chronicler watch tests/fixtures/sample_events.jsonl --db live.db
-# in another terminal:
-chronicler generate --db live.db --backend ollama --ollama-model gemma3:27b
+# Terminal 1: tail and narrate on arrival
+chronicler watch ./events.jsonl --db live.db --generate \
+    --backend ollama --ollama-model gemma3:27b --lang en,zh \
+    --min-significance 55
+
+# Terminal 2: pretend to be CK3
+cat >> ./events.jsonl <<'EOF'
+{"event_id":"live_hook:ruler_death:1066:abc123","source":"live_hook","type":"ruler_death","year":1066,"primary_actors":[{"character_id":"42","name":"Harold","dynasty":"Godwin"}],"tags":["death_battle"]}
+EOF
 ```
+
+Watch terminal 1 — the event is accepted, then the Court Historian and Peasant Ballad both narrate it in EN + ZH, one LLM call per (event × agent × language). Drop `--generate` to just collect events into the DB and narrate later with `chronicler generate`. See [docs/REALTIME_INGEST.md](docs/REALTIME_INGEST.md) for the full CK3-side contract.
 
 ## Architecture
 
@@ -101,7 +114,8 @@ events.jsonl (live) ──[validate]─────────────┤
 
 - **[`schemas/event.schema.json`](schemas/event.schema.json)** — JSON Schema pinning the save-import / live-hook interface. The Python `ChronicleEvent` model in `src/chronicler/schema.py` mirrors it 1:1.
 - **`src/chronicler/parsers/`** — save-file (`save_import.py`) and live-hook (`live_hook.py`) ingestors. Both produce `ChronicleEvent` instances.
-- **`scripts/import_dynasty.py`** — the dynastic-scope importer for real saves (Phase 0.1).
+- **`scripts/import_dynasty.py`** — the dynastic-scope importer for real saves (Phase 0.1–0.4). Honours `--scope {narrow,dynastic,middle,wide}` for tiered strictness.
+- **`src/chronicler/scoring.py`** — significance table + scope presets, shared between the save importer and the live-hook watcher (Phase 0.4).
 - **`src/chronicler/storage.py`** — SQLite with `events`, `chronicles`, `import_log` tables. Idempotent upserts.
 - **`src/chronicler/agents/`** — one module per narrative voice. `base.py` holds the Claude wrapper, the Ollama local-model wrapper, the dry-run mock, and pricing math.
 - **`src/chronicler/generator.py`** — orchestrator; iterates events × agents × languages, calls the LLM, persists results.
