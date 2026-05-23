@@ -1,11 +1,17 @@
 """SQLite storage layer.
 
-Two tables:
-- events: one row per ChronicleEvent (JSON-serialized payload + key columns for query)
-- chronicles: one row per (event_id, agent) — the LLM-generated narrative
+Tables:
+- events: one row per ChronicleEvent (JSON-serialized payload + key columns)
+- chronicles: one row per (event_id, agent, language) — the LLM-generated narrative
+- import_log: provenance of save/jsonl imports
 
-Re-importing the same save is idempotent: event_id is the primary key for
-events, and (event_id, agent) is unique in chronicles.
+Idempotent: event_id is the PK of events; (event_id, agent, language) is
+the unique index on chronicles, so re-running import or generate never
+duplicates.
+
+Migration: if an old (Phase 0 pre-i18n) chronicles table exists without
+the `language` column, we transparently ALTER it and stamp existing rows
+as 'en'.
 """
 
 from __future__ import annotations
@@ -28,7 +34,7 @@ CREATE TABLE IF NOT EXISTS events (
     year         INTEGER NOT NULL,
     primary_actor_id   TEXT,
     primary_actor_name TEXT,
-    payload      TEXT NOT NULL,  -- full JSON
+    payload      TEXT NOT NULL,
     created_at   TEXT NOT NULL
 );
 
@@ -40,6 +46,7 @@ CREATE TABLE IF NOT EXISTS chronicles (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     event_id     TEXT NOT NULL,
     agent        TEXT NOT NULL,
+    language     TEXT NOT NULL DEFAULT 'en',
     title        TEXT,
     body         TEXT NOT NULL,
     model        TEXT,
@@ -48,11 +55,13 @@ CREATE TABLE IF NOT EXISTS chronicles (
     cached_input_tokens INTEGER,
     cost_usd     REAL,
     created_at   TEXT NOT NULL,
-    UNIQUE(event_id, agent),
     FOREIGN KEY(event_id) REFERENCES events(event_id)
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_chronicles_unique
+    ON chronicles(event_id, agent, language);
 CREATE INDEX IF NOT EXISTS idx_chronicles_agent ON chronicles(agent);
+CREATE INDEX IF NOT EXISTS idx_chronicles_language ON chronicles(language);
 
 CREATE TABLE IF NOT EXISTS import_log (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -68,6 +77,11 @@ class Store:
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         with self._conn() as c:
+            # Migrate BEFORE running the canonical schema. SCHEMA_SQL
+            # creates a UNIQUE INDEX over (event_id, agent, language);
+            # if the legacy chronicles table lacks `language` that
+            # statement would fail on an unknown column.
+            _migrate(c)
             c.executescript(SCHEMA_SQL)
 
     @contextmanager
@@ -83,7 +97,6 @@ class Store:
     # ---- events ----
 
     def upsert_event(self, event: ChronicleEvent) -> bool:
-        """Returns True if inserted, False if already existed."""
         payload = event.model_dump_json()
         primary = event.primary_actors[0]
         with self._conn() as c:
@@ -161,11 +174,11 @@ class Store:
 
     # ---- chronicles ----
 
-    def has_chronicle(self, event_id: str, agent: str) -> bool:
+    def has_chronicle(self, event_id: str, agent: str, language: str = "en") -> bool:
         with self._conn() as c:
             row = c.execute(
-                "SELECT 1 FROM chronicles WHERE event_id = ? AND agent = ?",
-                (event_id, agent),
+                "SELECT 1 FROM chronicles WHERE event_id = ? AND agent = ? AND language = ?",
+                (event_id, agent, language),
             ).fetchone()
         return row is not None
 
@@ -174,6 +187,7 @@ class Store:
         *,
         event_id: str,
         agent: str,
+        language: str = "en",
         title: Optional[str],
         body: str,
         model: Optional[str] = None,
@@ -186,11 +200,11 @@ class Store:
             c.execute(
                 """
                 INSERT INTO chronicles (
-                    event_id, agent, title, body, model,
+                    event_id, agent, language, title, body, model,
                     input_tokens, output_tokens, cached_input_tokens,
                     cost_usd, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(event_id, agent) DO UPDATE SET
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(event_id, agent, language) DO UPDATE SET
                     title = excluded.title,
                     body = excluded.body,
                     model = excluded.model,
@@ -203,6 +217,7 @@ class Store:
                 (
                     event_id,
                     agent,
+                    language,
                     title,
                     body,
                     model,
@@ -214,13 +229,27 @@ class Store:
                 ),
             )
 
-    def list_chronicles_for_event(self, event_id: str) -> list[dict]:
+    def list_chronicles_for_event(
+        self,
+        event_id: str,
+        *,
+        language: Optional[str] = None,
+    ) -> list[dict]:
+        sql = "SELECT agent, language, title, body, model FROM chronicles WHERE event_id = ?"
+        params: list = [event_id]
+        if language is not None:
+            sql += " AND language = ?"
+            params.append(language)
+        with self._conn() as c:
+            rows = c.execute(sql, params).fetchall()
+        return [dict(r) for r in rows]
+
+    def available_languages(self) -> list[str]:
         with self._conn() as c:
             rows = c.execute(
-                "SELECT agent, title, body, model FROM chronicles WHERE event_id = ?",
-                (event_id,),
+                "SELECT DISTINCT language FROM chronicles ORDER BY language"
             ).fetchall()
-        return [dict(r) for r in rows]
+        return [r["language"] for r in rows]
 
     def total_cost(self) -> float:
         with self._conn() as c:
@@ -235,6 +264,56 @@ class Store:
                 "INSERT INTO import_log (source_path, event_count, imported_at) VALUES (?, ?, ?)",
                 (source_path, event_count, _now()),
             )
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Apply forward migrations.
+
+    Currently handles: pre-i18n chronicles tables (no `language` column).
+    Idempotent — safe to call on a brand-new DB (the chronicles table
+    won't exist yet, so PRAGMA returns no rows and we no-op).
+    """
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(chronicles)").fetchall()]
+    if not cols:
+        return  # No chronicles table yet; fresh DB.
+    if "language" not in cols:
+        # Old UNIQUE(event_id, agent) constraint may still exist from the
+        # original CREATE TABLE. SQLite can't drop table constraints, so
+        # we rebuild the table.
+        conn.executescript(
+            """
+            BEGIN;
+            CREATE TABLE chronicles_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_id TEXT NOT NULL,
+                agent TEXT NOT NULL,
+                language TEXT NOT NULL DEFAULT 'en',
+                title TEXT,
+                body TEXT NOT NULL,
+                model TEXT,
+                input_tokens INTEGER,
+                output_tokens INTEGER,
+                cached_input_tokens INTEGER,
+                cost_usd REAL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(event_id) REFERENCES events(event_id)
+            );
+            INSERT INTO chronicles_new
+                (id, event_id, agent, language, title, body, model,
+                 input_tokens, output_tokens, cached_input_tokens, cost_usd, created_at)
+            SELECT
+                id, event_id, agent, 'en', title, body, model,
+                input_tokens, output_tokens, cached_input_tokens, cost_usd, created_at
+            FROM chronicles;
+            DROP TABLE chronicles;
+            ALTER TABLE chronicles_new RENAME TO chronicles;
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_chronicles_unique
+                ON chronicles(event_id, agent, language);
+            CREATE INDEX IF NOT EXISTS idx_chronicles_agent ON chronicles(agent);
+            CREATE INDEX IF NOT EXISTS idx_chronicles_language ON chronicles(language);
+            COMMIT;
+            """
+        )
 
 
 def _now() -> str:

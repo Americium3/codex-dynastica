@@ -1,0 +1,23 @@
+{
+  "cli.import.done": "从存档导入：新增 {inserted} 条，已存在 {skipped} 条。",
+  "cli.import_json.done": "从 JSON 导入：新增 {inserted} 条，已存在 {skipped} 条。",
+  "cli.ingest.done": "已摄取 JSONL：新增 {inserted} 条，已存在 {skipped} 条。",
+  "cli.watch.start": "正在监听 {path}（按 Ctrl-C 停止）...",
+  "cli.watch.event": "  + {event_id}（{type}，公元 {year} 年）",
+  "cli.watch.stopped": "\n已停止。",
+  "cli.generate.summary": "已生成：{generated}  已跳过：{skipped}  失败：{failed}\n词元 — 输入：{input}  输出：{output}  缓存命中：{cached}\n预估费用：${cost}",
+  "cli.generate.no_api_key": "未设置 ANTHROPIC_API_KEY。请先设置环境变量，或加 --dry-run 使用模拟客户端。",
+  "cli.render.done": "已写入 {path}",
+  "cli.stats.events_header": "事件总数：{n}",
+  "cli.stats.cost_total": "至今编年史累计费用：${cost}",
+  "cli.stats.pricing_header": "已知模型计价（美元每百万词元）：",
+  "cli.import.rakaly_missing": "PATH 中未找到 rakaly。请从 https://github.com/rakaly 安装，或先用 'rakaly json' 转换后使用 'import-json'。",
+  "html.title.default": "王朝编年史",
+  "html.subtitle.default": "多视角史书",
+  "html.col.court_historian": "宫廷史录",
+  "html.col.peasant_ballad": "民间歌谣",
+  "html.col.empty": "（尚无记载）",
+  "html.stats.line": "共 {n} 条事件 · LLM 累计花费 ${cost}",
+  "html.no_events": "尚无事件记载。",
+  "html.footer": "由 Codex Dynastica 生成 — 第零阶段"
+}

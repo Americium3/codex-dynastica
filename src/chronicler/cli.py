@@ -5,10 +5,13 @@ Usage examples:
     chronicler import-json parsed.json --db chronicle.db
     chronicler ingest events.jsonl --db chronicle.db
     chronicler watch events.jsonl --db chronicle.db
-    chronicler generate --db chronicle.db --from 1066 --to 1200
-    chronicler generate --db chronicle.db --dry-run         # no API spend
-    chronicler render --db chronicle.db --out chronicle.html
+    chronicler generate --db chronicle.db --from 1066 --to 1200 --lang en,zh
+    chronicler generate --db chronicle.db --dry-run             # no API spend
+    chronicler render --db chronicle.db --out chronicle.html --lang zh
     chronicler stats --db chronicle.db
+
+Locale: CLI messages obey CHRONICLER_LOCALE (en|zh). The global
+`--locale` flag overrides for one invocation.
 """
 
 from __future__ import annotations
@@ -24,6 +27,7 @@ from . import __version__
 from .agents import ClaudeClient, DryRunClient, LLMClient, build_agents  # type: ignore[attr-defined]
 from .agents.base import PRICING
 from .generator import generate_range
+from .i18n import _, available_locales, set_locale
 from .parsers.live_hook import ingest_file, watch
 from .parsers.save_import import (
     RakalyNotFoundError,
@@ -40,26 +44,36 @@ def _make_client(dry_run: bool) -> LLMClient:
     if dry_run:
         return DryRunClient()
     if not os.environ.get("ANTHROPIC_API_KEY"):
-        print(
-            "ANTHROPIC_API_KEY not set. Set it, or pass --dry-run to use the mock client.",
-            file=sys.stderr,
-        )
+        print(_("cli.generate.no_api_key"), file=sys.stderr)
         sys.exit(2)
     return ClaudeClient()
+
+
+def _parse_languages(s: str) -> list[str]:
+    raw = [p.strip().lower() for p in s.split(",") if p.strip()]
+    out = []
+    for r in raw:
+        if r.startswith("zh"):
+            out.append("zh")
+        elif r.startswith("en"):
+            out.append("en")
+        else:
+            print(f"Unknown language: {r}. Supported: en, zh.", file=sys.stderr)
+            sys.exit(2)
+    return out or ["en"]
 
 
 def _cmd_import(args: argparse.Namespace) -> int:
     store = Store(args.db)
     try:
         parsed = parse_save(args.save)
-    except RakalyNotFoundError as e:
-        print(f"ERROR: {e}", file=sys.stderr)
-        print("Tip: convert separately and use 'import-json'.", file=sys.stderr)
+    except RakalyNotFoundError:
+        print(_("cli.import.rakaly_missing"), file=sys.stderr)
         return 3
     events = list(extract_events(parsed))
     inserted, skipped = store.upsert_events(events)
     store.log_import(str(args.save), inserted + skipped)
-    print(f"Imported from save: {inserted} new, {skipped} already present.")
+    print(_("cli.import.done", inserted=inserted, skipped=skipped))
     return 0
 
 
@@ -69,7 +83,7 @@ def _cmd_import_json(args: argparse.Namespace) -> int:
     events = list(extract_events(parsed))
     inserted, skipped = store.upsert_events(events)
     store.log_import(str(args.json), inserted + skipped)
-    print(f"Imported from JSON: {inserted} new, {skipped} already present.")
+    print(_("cli.import_json.done", inserted=inserted, skipped=skipped))
     return 0
 
 
@@ -85,20 +99,20 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
             skipped += 1
     ingest_file(args.jsonl, on_event)
     store.log_import(str(args.jsonl), inserted + skipped)
-    print(f"Ingested JSONL: {inserted} new, {skipped} already present.")
+    print(_("cli.ingest.done", inserted=inserted, skipped=skipped))
     return 0
 
 
 def _cmd_watch(args: argparse.Namespace) -> int:
     store = Store(args.db)
-    print(f"Watching {args.jsonl} (Ctrl-C to stop)...")
+    print(_("cli.watch.start", path=args.jsonl))
     def on_event(ev):
         if store.upsert_event(ev):
-            print(f"  + {ev.event_id} ({ev.type.value}, AD {ev.year})")
+            print(_("cli.watch.event", event_id=ev.event_id, type=ev.type.value, year=ev.year))
     try:
         watch(args.jsonl, on_event, poll_interval=args.interval)
     except KeyboardInterrupt:
-        print("\nStopped.")
+        print(_("cli.watch.stopped"))
     return 0
 
 
@@ -107,6 +121,7 @@ def _cmd_generate(args: argparse.Namespace) -> int:
     client = _make_client(args.dry_run)
     agents = build_agents(client)
     event_type = EventType(args.type) if args.type else None
+    languages = _parse_languages(args.lang)
     stats = generate_range(
         store=store,
         agents=agents,
@@ -114,20 +129,33 @@ def _cmd_generate(args: argparse.Namespace) -> int:
         to_year=args.to_year,
         event_type=event_type,
         character_id=args.character,
+        languages=languages,
         force=args.force,
     )
-    print(
-        f"Generated: {stats.generated}  Skipped: {stats.skipped}  Failed: {stats.failed}\n"
-        f"Tokens — in: {stats.total_input_tokens}  out: {stats.total_output_tokens}  cached: {stats.total_cached_tokens}\n"
-        f"Estimated cost: ${stats.total_cost_usd:.4f}"
-    )
+    print(_(
+        "cli.generate.summary",
+        generated=stats.generated,
+        skipped=stats.skipped,
+        failed=stats.failed,
+        input=stats.total_input_tokens,
+        output=stats.total_output_tokens,
+        cached=stats.total_cached_tokens,
+        cost=f"{stats.total_cost_usd:.4f}",
+    ))
     return 0
 
 
 def _cmd_render(args: argparse.Namespace) -> int:
     store = Store(args.db)
-    out = render_html(store, args.out, title=args.title, subtitle=args.subtitle)
-    print(f"Wrote {out}")
+    lang = "zh" if args.lang.startswith("zh") else "en"
+    out = render_html(
+        store,
+        args.out,
+        title=args.title,
+        subtitle=args.subtitle,
+        language=lang,
+    )
+    print(_("cli.render.done", path=out))
     return 0
 
 
@@ -137,11 +165,14 @@ def _cmd_stats(args: argparse.Namespace) -> int:
     by_type: dict[str, int] = {}
     for e in events:
         by_type[e.type.value] = by_type.get(e.type.value, 0) + 1
-    print(f"Events: {len(events)}")
+    print(_("cli.stats.events_header", n=len(events)))
     for t, n in sorted(by_type.items(), key=lambda kv: -kv[1]):
         print(f"  {t}: {n}")
-    print(f"Total chronicle cost so far: ${store.total_cost():.4f}")
-    print(f"Known model pricing (USD per MTok):")
+    langs = store.available_languages()
+    if langs:
+        print(f"  languages: {', '.join(langs)}")
+    print(_("cli.stats.cost_total", cost=f"{store.total_cost():.4f}"))
+    print(_("cli.stats.pricing_header"))
     for model, price in PRICING.items():
         print(f"  {model}: in={price['input']:.2f} out={price['output']:.2f} cache_read={price['cache_read']:.2f}")
     return 0
@@ -150,10 +181,16 @@ def _cmd_stats(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="chronicler",
-        description="CK3 AI Chronicler — Phase 0 MVP",
+        description="Codex Dynastica — Phase 0 MVP (CK3 AI Chronicler).",
     )
     p.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     p.add_argument("--verbose", "-v", action="count", default=0, help="-v for INFO, -vv for DEBUG")
+    p.add_argument(
+        "--locale",
+        choices=list(available_locales()),
+        default=None,
+        help="Override CHRONICLER_LOCALE for this invocation (en|zh).",
+    )
     sub = p.add_subparsers(dest="command", required=True)
 
     pi = sub.add_parser("import", help="Import a CK3 .ck3 save file (requires rakaly).")
@@ -186,6 +223,11 @@ def build_parser() -> argparse.ArgumentParser:
     pg.add_argument("--to", dest="to_year", type=int, default=None)
     pg.add_argument("--type", default=None, help="Filter to one event type.")
     pg.add_argument("--character", default=None, help="Filter to one primary character id.")
+    pg.add_argument(
+        "--lang",
+        default="en",
+        help="Output language(s), comma-separated. Supported: en, zh. Default: en.",
+    )
     pg.add_argument("--force", action="store_true", help="Regenerate even if a chronicle already exists.")
     pg.add_argument("--dry-run", action="store_true", help="Use the mock LLM client (no API calls).")
     pg.set_defaults(func=_cmd_generate)
@@ -193,8 +235,13 @@ def build_parser() -> argparse.ArgumentParser:
     pr = sub.add_parser("render", help="Render stored chronicles as a static HTML page.")
     pr.add_argument("--db", type=Path, default="chronicle.db")
     pr.add_argument("--out", type=Path, default="chronicle.html")
-    pr.add_argument("--title", default="Chronicles of the Realm")
-    pr.add_argument("--subtitle", default="A multi-perspective history")
+    pr.add_argument("--title", default=None)
+    pr.add_argument("--subtitle", default=None)
+    pr.add_argument(
+        "--lang",
+        default="en",
+        help="Which language's chronicles to render. Supported: en, zh. Default: en.",
+    )
     pr.set_defaults(func=_cmd_render)
 
     ps = sub.add_parser("stats", help="Print summary of stored events and cost.")
@@ -207,6 +254,8 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Optional[list[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    if args.locale:
+        set_locale(args.locale)
     level = logging.WARNING
     if args.verbose == 1:
         level = logging.INFO

@@ -1,5 +1,7 @@
 # Contributing
 
+**English** · [简体中文](CONTRIBUTING.zh-CN.md)
+
 Phase 0 is a small Python package with a clear surface. The most valuable contributions right now are:
 
 1. **Save-file shape coverage.** The `rakaly` JSON layout shifts between CK3 versions and partly between mods. `src/chronicler/parsers/save_import.py` extracts defensively but inevitably misses keys. If you have a save where the parser misses obvious events, please attach a redacted JSON dump and we'll add the keys.

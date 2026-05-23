@@ -1,5 +1,7 @@
 # Roadmap
 
+**English** · [简体中文](ROADMAP.zh-CN.md)
+
 The project is split into four phases. Each phase is shippable and useful on its own.
 
 ## Phase 0 — Court Historian + Peasant Ballads (current MVP)

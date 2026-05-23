@@ -154,45 +154,57 @@ class Agent(ABC):
     Subclasses provide:
     - name: stable id stored in DB
     - display_name: shown in UI
-    - system_prompt(): the cached persona block
-    - user_prompt(event): the per-event input
+    - system_prompt(language): the cached persona block, per output language
+    - user_prompt(event, language): the per-event input, per output language
     - model_for(event): which Claude model to use
+
+    The language is part of the agent's render call signature so the same
+    Agent instance can produce both English and Chinese chronicles in one
+    run without re-instantiation.
     """
 
     name: str = "agent"
     display_name: str = "Agent"
+    supported_languages: tuple[str, ...] = ("en", "zh")
 
     def __init__(self, client: LLMClient, *, max_tokens: int = 800):
         self.client = client
         self.max_tokens = max_tokens
 
     @abstractmethod
-    def system_prompt(self) -> str: ...
+    def system_prompt(self, language: str = "en") -> str: ...
 
     @abstractmethod
-    def user_prompt(self, event: ChronicleEvent) -> str: ...
+    def user_prompt(self, event: ChronicleEvent, language: str = "en") -> str: ...
 
     def model_for(self, event: ChronicleEvent) -> str:
-        # Heuristic: war_end / great_holy_war / coronation are 'major'.
         major = {"war_end", "great_holy_war", "coronation", "ruler_death", "murder"}
         return DEFAULT_MAJOR_MODEL if event.type.value in major else DEFAULT_MINOR_MODEL
 
-    def render(self, event: ChronicleEvent) -> AgentResult:
+    def render(self, event: ChronicleEvent, language: str = "en") -> AgentResult:
+        if language not in self.supported_languages:
+            raise ValueError(
+                f"Agent {self.name} does not support language {language!r}. "
+                f"Supported: {self.supported_languages}"
+            )
         system = [
             {
                 "type": "text",
-                "text": self.system_prompt(),
+                "text": self.system_prompt(language),
                 "cache_control": {"type": "ephemeral"},
             }
         ]
         messages = [
             {
                 "role": "user",
-                "content": self.user_prompt(event),
+                "content": self.user_prompt(event, language),
             }
         ]
         model = self.model_for(event)
-        log.debug("Agent %s rendering %s with %s", self.name, event.event_id, model)
+        log.debug(
+            "Agent %s rendering %s lang=%s with %s",
+            self.name, event.event_id, language, model,
+        )
         resp = self.client.complete(
             model=model,
             system=system,

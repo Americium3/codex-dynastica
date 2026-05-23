@@ -1,5 +1,7 @@
 # Codex Dynastica
 
+**English** · [简体中文](README.zh-CN.md)
+
 > An AI-driven multi-perspective historiography companion for Crusader Kings 3.
 
 CK3's biggest narrative gap is that 300 years of play produce no real *history*. Generic event text repeats. Your dynasty has no remembered past. **CK3 AI Chronicler** uses large language models to generate living, biased, contradictory chronicles of the same events — court histories, peasant ballads, and (in later phases) enemy histories and church records — so that the same war can be remembered as a holy victory in one chamber and a tax raid in another village.

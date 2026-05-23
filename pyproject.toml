@@ -42,7 +42,7 @@ chronicler = "chronicler.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-chronicler = ["py.typed"]
+chronicler = ["py.typed", "i18n/*.json"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

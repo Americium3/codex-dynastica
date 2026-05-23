@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Roadmap (EN) / 路线图（英文）
+    url: https://github.com/Americium3/codex-dynastica/blob/main/docs/ROADMAP.md
+    about: See the phased roadmap before opening a feature request.
+  - name: 路线图（中文）
+    url: https://github.com/Americium3/codex-dynastica/blob/main/docs/ROADMAP.zh-CN.md
+    about: 提交功能请求前请先阅读分阶段路线图。
