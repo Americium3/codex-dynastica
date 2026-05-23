@@ -101,6 +101,11 @@ class ChronicleEvent(BaseModel):
     tags: list[str] = Field(default_factory=list)
     raw_excerpt: Optional[str] = None
     witnesses: list[str] = Field(default_factory=list)
+    # Phase 0.1: a short context block describing the reigning ruler /
+    # primary title / dynasty / regnal year. Set once per import; the
+    # narrative agents read it on every event so the LLM stops inventing
+    # off-screen kings ("King Alaric") out of thin air.
+    world_context: Optional[str] = None
 
     @field_validator("event_id")
     @classmethod

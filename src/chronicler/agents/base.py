@@ -22,6 +22,8 @@ import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional, Protocol
+from urllib import request as _urlrequest
+from urllib.error import URLError
 
 from ..schema import ChronicleEvent
 
@@ -96,6 +98,95 @@ class ClaudeClient:
         }
 
 
+class OllamaClient:
+    """Local-model client targeting an Ollama server (default :11434).
+
+    Why this exists
+    ---------------
+    Phase 0 originally assumed Claude. Users without an Anthropic key can
+    point this client at a local model (e.g. ``gemma3:27b``) and get a
+    chronicle entirely on-device. The Agent layer passes a Claude-style
+    model name in via ``model=``; this client ignores it and uses its own
+    ``default_model``, because the Anthropic/Ollama model namespaces don't
+    overlap.
+
+    Prompt-cache fields
+    -------------------
+    Ollama has no equivalent of Anthropic's ``cache_control``. We strip
+    those blocks before sending. Cache token counts are reported as 0.
+
+    Token accounting
+    ----------------
+    Ollama reports ``prompt_eval_count`` / ``eval_count`` in /api/chat
+    responses. We surface those as input/output tokens. ``estimate_cost``
+    returns 0 for unknown models, so local-model runs show $0 spend —
+    that is correct.
+    """
+
+    def __init__(
+        self,
+        *,
+        model: str = "gemma3:27b",
+        base_url: str = "http://localhost:11434",
+        timeout: float = 600.0,
+        temperature: float = 0.8,
+    ):
+        self.default_model = model
+        self.base_url = base_url.rstrip("/")
+        self.timeout = timeout
+        self.temperature = temperature
+
+    def _flatten(self, blocks: list[dict] | str) -> str:
+        if isinstance(blocks, str):
+            return blocks
+        parts: list[str] = []
+        for b in blocks:
+            if isinstance(b, dict) and b.get("type") == "text":
+                parts.append(b.get("text", ""))
+            elif isinstance(b, str):
+                parts.append(b)
+        return "\n".join(p for p in parts if p)
+
+    def complete(self, *, model, system, messages, max_tokens):
+        # Ignore the incoming Anthropic-style model name; use ours.
+        target_model = self.default_model
+        ollama_messages = [{"role": "system", "content": self._flatten(system)}]
+        for m in messages:
+            ollama_messages.append({"role": m["role"], "content": self._flatten(m["content"])})
+        payload = {
+            "model": target_model,
+            "messages": ollama_messages,
+            "stream": False,
+            "options": {
+                "temperature": self.temperature,
+                "num_predict": max_tokens,
+            },
+        }
+        data = json.dumps(payload).encode("utf-8")
+        req = _urlrequest.Request(
+            f"{self.base_url}/api/chat",
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with _urlrequest.urlopen(req, timeout=self.timeout) as resp:
+                body = json.loads(resp.read().decode("utf-8"))
+        except URLError as e:
+            raise RuntimeError(
+                f"Ollama request to {self.base_url} failed: {e}. "
+                f"Is `ollama serve` running and is the model '{target_model}' pulled?"
+            ) from e
+        text = (body.get("message") or {}).get("content", "")
+        return {
+            "text": text,
+            "input_tokens": int(body.get("prompt_eval_count") or 0),
+            "output_tokens": int(body.get("eval_count") or 0),
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 0,
+        }
+
+
 class DryRunClient:
     """Mock LLM: returns deterministic stub text. Useful for offline tests
     and for verifying the full pipeline without spending API credit."""
@@ -167,9 +258,18 @@ class Agent(ABC):
     display_name: str = "Agent"
     supported_languages: tuple[str, ...] = ("en", "zh")
 
-    def __init__(self, client: LLMClient, *, max_tokens: int = 800):
+    def __init__(
+        self,
+        client: LLMClient,
+        *,
+        max_tokens: int = 800,
+        model_override: Optional[str] = None,
+    ):
         self.client = client
         self.max_tokens = max_tokens
+        # When set, bypasses `model_for()`. Used by the Ollama backend so
+        # every event routes to e.g. gemma3:27b regardless of severity tier.
+        self.model_override = model_override
 
     @abstractmethod
     def system_prompt(self, language: str = "en") -> str: ...
@@ -178,6 +278,8 @@ class Agent(ABC):
     def user_prompt(self, event: ChronicleEvent, language: str = "en") -> str: ...
 
     def model_for(self, event: ChronicleEvent) -> str:
+        if self.model_override:
+            return self.model_override
         major = {"war_end", "great_holy_war", "coronation", "ruler_death", "murder"}
         return DEFAULT_MAJOR_MODEL if event.type.value in major else DEFAULT_MINOR_MODEL
 
@@ -247,7 +349,13 @@ def _split_title_body(text: str) -> tuple[str, str]:
 
 
 def event_brief(event: ChronicleEvent) -> str:
-    """Compact JSON-ish brief of an event for prompt injection."""
+    """Compact JSON-ish brief of an event for prompt injection.
+
+    If the event carries ``world_context`` (set by the dynastic-scope
+    importer), it is rendered first — this anchors the narrator to the
+    real reigning ruler / primary title / dynasty so the model doesn't
+    fabricate a "King Alaric" out of thin air.
+    """
     primary = ", ".join(
         f"{a.name} ({a.dynasty or '—'}, {a.culture or '—'}, {a.religion or '—'}, traits={','.join(a.traits[:4]) or '—'})"
         for a in event.primary_actors
@@ -263,7 +371,11 @@ def event_brief(event: ChronicleEvent) -> str:
         f"attacker_dead={cas.attacker_dead}, defender_dead={cas.defender_dead}"
         if cas else "—"
     )
+    ctx_block = ""
+    if event.world_context:
+        ctx_block = f"WORLD CONTEXT (treat as ground truth):\n{event.world_context.strip()}\n\n"
     return (
+        f"{ctx_block}"
         f"type={event.type.value}\n"
         f"date={event.year}-{event.month or '?'}-{event.day or '?'}\n"
         f"location={loc_str}\n"

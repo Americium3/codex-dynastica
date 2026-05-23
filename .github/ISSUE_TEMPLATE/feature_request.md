@@ -1,6 +1,6 @@
 ---
 name: Feature request / 功能请求
-about: Suggest an idea for Codex Dynastica / 为 Codex Dynastica 提出新功能
+about: Suggest an idea for Vox Dynastica / 为 Vox Dynastica 提出新功能
 title: "[Feature] "
 labels: enhancement
 ---

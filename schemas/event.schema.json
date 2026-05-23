@@ -117,6 +117,10 @@
       "type": "array",
       "items": { "type": "string" },
       "description": "Character ids who plausibly knew about the event. Drives which agents may reference it."
+    },
+    "world_context": {
+      "type": ["string", "null"],
+      "description": "Short context block describing the reigning ruler, primary title, dynasty, and regnal year. Set once per import; narrative agents read it on every event to anchor the narrator to real ground truth."
     }
   },
   "$defs": {

@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -49,8 +50,36 @@ class RakalyNotFoundError(RuntimeError):
     """Raised when rakaly is required but not installed on PATH."""
 
 
+def _project_root_bin() -> Optional[Path]:
+    """Look upward from this file for a sibling ``bin/`` directory.
+
+    Lets the project ship a pinned rakaly without touching system PATH.
+    """
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        cand = parent / "bin"
+        if cand.is_dir():
+            return cand
+    return None
+
+
+def _rakaly_path() -> Optional[str]:
+    """Find rakaly. Precedence: $CHRONICLER_RAKALY → project bin/ → PATH."""
+    env = os.environ.get("CHRONICLER_RAKALY")
+    if env and Path(env).exists():
+        return env
+    binroot = _project_root_bin()
+    if binroot:
+        for name in ("rakaly.exe", "rakaly"):
+            cand = binroot / name
+            if cand.exists():
+                return str(cand)
+    onpath = shutil.which("rakaly")
+    return onpath
+
+
 def rakaly_available() -> bool:
-    return shutil.which("rakaly") is not None
+    return _rakaly_path() is not None
 
 
 def convert_save_to_json(save_path: str | Path, out_path: Optional[str | Path] = None) -> Path:
@@ -59,17 +88,19 @@ def convert_save_to_json(save_path: str | Path, out_path: Optional[str | Path] =
     Returns the path to the resulting JSON file. If `out_path` is omitted,
     writes alongside the save with a `.json` suffix.
     """
-    if not rakaly_available():
+    exe = _rakaly_path()
+    if not exe:
         raise RakalyNotFoundError(
-            "rakaly CLI not found on PATH. Install from https://github.com/rakaly "
-            "or supply a pre-converted JSON to parse_save_json()."
+            "rakaly CLI not found. Set $CHRONICLER_RAKALY, drop the binary in "
+            "<repo>/bin/, install it on PATH, or supply a pre-converted JSON "
+            "to parse_save_json()."
         )
     save_path = Path(save_path)
     out_path = Path(out_path) if out_path else save_path.with_suffix(".json")
-    log.info("Converting %s via rakaly...", save_path)
+    log.info("Converting %s via %s ...", save_path, exe)
     with out_path.open("wb") as f:
         proc = subprocess.run(
-            ["rakaly", "json", str(save_path)],
+            [exe, "json", str(save_path)],
             stdout=f,
             stderr=subprocess.PIPE,
             check=False,

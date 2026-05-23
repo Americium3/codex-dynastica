@@ -2,11 +2,13 @@
 
 [English](ROADMAP.md) · **简体中文**
 
-本项目分四个阶段。每个阶段独立可交付、独立有价值。
+Vox Dynastica 专注于**王朝 / 主头衔史**。**家族史**（堂表姊妹的婚事、姑奶奶的丧事）将拆分为另一个姊妹项目，让本项目保持锋利。
 
-## Phase 0 — 宫廷史官 + 农民歌谣（当前 MVP）
+各阶段独立可交付、独立有价值。
 
-端到端管线。**必须支持存档文件导入**，不仅是实时事件钩子。暂无游戏内 UI，输出为浏览器 HTML。
+## Phase 0 — 宫廷史官 + 农民歌谣 MVP ✅
+
+端到端管线。**支持存档文件导入**，不仅是实时事件钩子。暂无游戏内 UI，输出为浏览器 HTML。
 
 - [x] 事件 JSON Schema，存档导入与实时钩子的共用接口
 - [x] Pydantic 模型
@@ -21,12 +23,40 @@
 - [x] CLI（`import` / `import-json` / `ingest` / `watch` / `generate` / `render` / `stats`），支持 `--lang en,zh`
 - [x] i18n 层：CLI 提示与 HTML chrome 走 `_(key)` 查表
 - [x] 样例数据 + 端到端 smoke test（6/6 通过）
-- [ ] 3–5 个多样化存档（短局/长局/不同文化/不同宗教）上的费用曲线基准
-- [ ] 主观输出质量评审（无出戏、无现代词）
 
-## Phase 1 — 游戏内王室图书馆 UI
+## Phase 0.1 — 王朝主头衔范围 + 本地模型后端 ✅
 
-硬性要求：**与原生 CK3 视觉无法区分**。应该让玩家感觉这就是 Paradox 自己出的 DLC。
+真实存档把宽泛的抽取器顶崩了（一份 1034 年存档里有 9 万 3 千个死人）。Phase 0.1 把视线收窄到**玩家的主头衔**，并增加一条离线 LLM 通路。
+
+- [x] **Ollama 本地模型客户端**（`agents/base.py` 中的 `OllamaClient`）——实现 `LLMClient` 协议；剥离 Anthropic 特有的 `cache_control`；用 stdlib `urllib` 直连 `http://localhost:11434/api/chat`；默认 `gemma3:27b`；本地跑费用记为 \$0
+- [x] **CLI 增加** `--backend {claude,ollama,dry-run}`、`--ollama-model`、`--ollama-url`、`--agent` 子集过滤
+- [x] **项目内置 rakaly**：`parsers/save_import.py` 按 `<repo>/bin/rakaly[.exe]` → `$CHRONICLER_RAKALY` → `$PATH` 顺序查找，不污染系统
+- [x] **`scripts/import_dynasty.py`** —— 主头衔范围真实存档导入器：
+  - 沿着 `landed_titles.landed_titles[primary_id].history` 走，枚举主头衔的历任持有者
+  - 每位持有者抓：**驾崩** / **第一继承人的生卒** / **大婚**
+  - 当代持有者参与的 **active wars**：发出 "ongoing war" 事件，含 casus belli 与对手首领
+  - 当代持有者的**重大特质**（重病 / 残疾 / 衰老）抽出来作为 state-of-the-realm 条目，日期记为存档当日
+- [x] **title_id → holder_char_id 反查表** —— wars.active_wars 的参与者是角色 id，但把战争挂回*主头衔本身*需要这层映射
+- [x] **brief 注入玩家上下文** —— 每条 prompt 都带在位君主名 + 主头衔 + 家名，避免 LLM 凭空捏造 "King Alaric"
+- [x] **`--max-per-type` 子配额上限** —— 防止某一类事件淹没整部编年史
+- [x] **CK3 汉字名解码器** —— `Zihua_5B50_534E` → `Zihua 子华`，`Wenju_6587_4E3E` → `Wenju 文举`
+- [x] **重写宫廷史官英文 prompt** —— 禁用未翻译拉丁；改为可读古朴英文（仿 Bede *现代英译本*）
+- [ ] 3–5 个多样化真实存档上的费用曲线基准
+- [ ] 从新版 `landed_titles[*].history` 形态的存档里恢复 wars / coronations / marriages（Phase 0 默认抽取器目前漏抓）
+
+## Phase 0.2 — 玩家可选作用域：narrow / middle / wide
+
+加一个 CLI flag（Phase 1 再做游戏内设置），让玩家挑「编年史的镜头开多大」：
+
+- [ ] **narrow** —— 仅本王朝家族。家族内的生卒婚嫁。适合（一）想看家史的有地领主；（二）旅人冒险者——血脉仍是单元
+- [ ] **middle** —— narrow 的基础上，加入玩家旅居过的领地之上的诸侯。专为 landless adventurer 玩法设计
+- [ ] **wide** —— 已知世界一切显赫君主（原 Phase 0 默认）
+- [ ] 各 scope 的子类配额与时间窗口可独立配置
+- [ ] 按玩家 lifestyle 自动挑 scope（landed → dynastic、wandering → middle、ironman → narrow）
+
+## Phase 1 — 游戏内王室图书馆 UI + 云端 API 选择器
+
+硬性要求：**与原生 CK3 视觉无法区分**。应该让玩家感觉这就是 Paradox 自己出的 DLC。同时在模组设置里加入 RimTalk 风格的 provider/key/model 选择器，玩家可自选云端 LLM（或继续用本地 Ollama）。
 
 原生级原则（不可妥协）：
 - 不画新的边框/按钮/分隔线——只引用 `gfx/interface/...` 的 vanilla 贴图
@@ -48,6 +78,7 @@
 - [ ] CK3 模组本地化：`localization/english/` + `localization/simp_chinese/` 双语
 - [ ] 质量门槛：盲测——把图书馆截图和 vanilla 截图混在一起，第三方无法分辨
 - [ ] UI 缩放 50% / 100% / 150% 下都正确
+- [ ] **模组设置内的云端 API 选择器** —— RimTalk 模式：下拉选 provider（Anthropic / OpenAI / OpenRouter / 本地 Ollama），密钥与模型名输入框，合理默认值，提交前显示延迟与费用预估
 
 ## Phase 2 — 敌国 + 教会视角
 

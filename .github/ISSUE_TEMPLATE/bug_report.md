@@ -1,6 +1,6 @@
 ---
 name: Bug report / 缺陷报告
-about: Report a bug in Codex Dynastica / 报告 Codex Dynastica 的缺陷
+about: Report a bug in Vox Dynastica / 报告 Vox Dynastica 的缺陷
 title: "[Bug] "
 labels: bug
 ---
@@ -25,7 +25,7 @@ You may write either in English or 中文. The headings below are bilingual on p
 ## Environment / 环境
 - OS / 操作系统:
 - Python version / Python 版本:
-- Codex Dynastica version (`chronicler --version`) / 版本:
+- Vox Dynastica version (`chronicler --version`) / 版本:
 - CK3 game version (if relevant) / CK3 版本（若相关）:
 - LLM model used (if relevant) / 使用的 LLM 模型（若相关）:
 

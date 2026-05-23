@@ -3,14 +3,14 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "codex-dynastica"
-version = "0.1.0"
-description = "An AI-driven multi-perspective historiography mod companion for Crusader Kings 3."
+name = "vox-dynastica"
+version = "0.1.1"
+description = "An AI-driven dynastic-chronicle companion for Crusader Kings 3 — voice of the dynasty."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "CK3 AI Chronicler contributors" }]
-keywords = ["ck3", "crusader-kings", "modding", "llm", "anthropic", "claude"]
+authors = [{ name = "Vox Dynastica contributors" }]
+keywords = ["ck3", "crusader-kings", "modding", "llm", "anthropic", "claude", "ollama"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
@@ -35,8 +35,8 @@ dev = [
 chronicler = "chronicler.cli:main"
 
 [project.urls]
-"Source" = "https://github.com/Americium3/codex-dynastica"
-"Issues" = "https://github.com/Americium3/codex-dynastica/issues"
+"Source" = "https://github.com/Americium3/vox-dynastica"
+"Issues" = "https://github.com/Americium3/vox-dynastica/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -13,8 +13,8 @@ Phase 0 is a small Python package with a clear surface. The most valuable contri
 ## Workflow
 
 ```bash
-git clone https://github.com/Americium3/codex-dynastica.git
-cd ck3-ai-chronicler
+git clone https://github.com/Americium3/vox-dynastica.git
+cd vox-dynastica
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 pytest

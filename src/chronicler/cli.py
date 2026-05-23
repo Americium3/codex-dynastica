@@ -24,7 +24,14 @@ from pathlib import Path
 from typing import Optional
 
 from . import __version__
-from .agents import ClaudeClient, DryRunClient, LLMClient, build_agents  # type: ignore[attr-defined]
+from .agents import (  # type: ignore[attr-defined]
+    AGENTS_BY_NAME,
+    ClaudeClient,
+    DryRunClient,
+    LLMClient,
+    OllamaClient,
+    build_agents,
+)
 from .agents.base import PRICING
 from .generator import generate_range
 from .i18n import _, available_locales, set_locale
@@ -40,13 +47,29 @@ from .schema import EventType
 from .storage import Store
 
 
-def _make_client(dry_run: bool) -> LLMClient:
-    if dry_run:
-        return DryRunClient()
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        print(_("cli.generate.no_api_key"), file=sys.stderr)
-        sys.exit(2)
-    return ClaudeClient()
+def _make_client(args: argparse.Namespace) -> tuple[LLMClient, Optional[str]]:
+    """Return (client, model_override). model_override is non-None for
+    backends whose model namespace doesn't match the built-in Anthropic
+    one (currently: ollama)."""
+    # Back-compat: --dry-run still works and implies backend=dry-run.
+    backend = getattr(args, "backend", None) or ("dry-run" if getattr(args, "dry_run", False) else "claude")
+    if backend == "dry-run":
+        return DryRunClient(), None
+    if backend == "ollama":
+        return (
+            OllamaClient(
+                model=args.ollama_model,
+                base_url=args.ollama_url,
+            ),
+            args.ollama_model,
+        )
+    if backend == "claude":
+        if not os.environ.get("ANTHROPIC_API_KEY"):
+            print(_("cli.generate.no_api_key"), file=sys.stderr)
+            sys.exit(2)
+        return ClaudeClient(), None
+    print(f"Unknown backend: {backend}", file=sys.stderr)
+    sys.exit(2)
 
 
 def _parse_languages(s: str) -> list[str]:
@@ -118,8 +141,11 @@ def _cmd_watch(args: argparse.Namespace) -> int:
 
 def _cmd_generate(args: argparse.Namespace) -> int:
     store = Store(args.db)
-    client = _make_client(args.dry_run)
-    agents = build_agents(client)
+    client, model_override = _make_client(args)
+    only = None
+    if args.agent:
+        only = [a.strip() for a in args.agent.split(",") if a.strip()]
+    agents = build_agents(client, model_override=model_override, only=only)
     event_type = EventType(args.type) if args.type else None
     languages = _parse_languages(args.lang)
     stats = generate_range(
@@ -181,7 +207,7 @@ def _cmd_stats(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="chronicler",
-        description="Codex Dynastica — Phase 0 MVP (CK3 AI Chronicler).",
+        description="Vox Dynastica — voice of the dynasty (Phase 0 MVP, CK3 chronicle generator).",
     )
     p.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     p.add_argument("--verbose", "-v", action="count", default=0, help="-v for INFO, -vv for DEBUG")
@@ -229,7 +255,29 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output language(s), comma-separated. Supported: en, zh. Default: en.",
     )
     pg.add_argument("--force", action="store_true", help="Regenerate even if a chronicle already exists.")
-    pg.add_argument("--dry-run", action="store_true", help="Use the mock LLM client (no API calls).")
+    pg.add_argument(
+        "--backend",
+        choices=["claude", "ollama", "dry-run"],
+        default=None,
+        help="LLM backend. claude=Anthropic API, ollama=local model, dry-run=offline mock. "
+             "Default: claude if ANTHROPIC_API_KEY is set, else error (or pass --dry-run).",
+    )
+    pg.add_argument(
+        "--ollama-model",
+        default="gemma3:27b",
+        help="Model name when --backend=ollama. Default: gemma3:27b.",
+    )
+    pg.add_argument(
+        "--ollama-url",
+        default="http://localhost:11434",
+        help="Ollama server URL. Default: http://localhost:11434.",
+    )
+    pg.add_argument(
+        "--agent",
+        default=None,
+        help=f"Restrict to a subset of agents (comma-separated). Known: {','.join(sorted(AGENTS_BY_NAME))}.",
+    )
+    pg.add_argument("--dry-run", action="store_true", help="Shortcut for --backend dry-run.")
     pg.set_defaults(func=_cmd_generate)
 
     pr = sub.add_parser("render", help="Render stored chronicles as a static HTML page.")

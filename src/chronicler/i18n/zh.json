@@ -19,5 +19,5 @@
   "html.col.empty": "（尚无记载）",
   "html.stats.line": "共 {n} 条事件 · LLM 累计花费 ${cost}",
   "html.no_events": "尚无事件记载。",
-  "html.footer": "由 Codex Dynastica 生成 — 第零阶段"
+  "html.footer": "由 Vox Dynastica 生成 — 第零阶段"
 }

@@ -39,6 +39,15 @@ events.jsonl.*
 .env
 .env.local
 
+# Phase 0.1: keep the pinned rakaly binary, drop the download tarball/zip + extract dir
+bin/rakaly-*.zip
+bin/rakaly-*.tar.gz
+bin/rakaly_extract/
+# Phase 0.1: real-save run artifacts (DBs, rendered HTMLs, scratch JSON)
+runs/
+# Phase 0.1: ad-hoc probe outputs
+*.json.bak
+
 # OS
 Thumbs.db
 desktop.ini
