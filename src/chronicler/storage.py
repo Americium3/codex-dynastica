@@ -16,15 +16,13 @@ as 'en'.
 
 from __future__ import annotations
 
-import json
 import sqlite3
+from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Iterable, Iterator, Optional
 
 from .schema import ChronicleEvent, EventType
-
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS events (
@@ -136,7 +134,7 @@ class Store:
                 skipped += 1
         return inserted, skipped
 
-    def get_event(self, event_id: str) -> Optional[ChronicleEvent]:
+    def get_event(self, event_id: str) -> ChronicleEvent | None:
         with self._conn() as c:
             row = c.execute(
                 "SELECT payload FROM events WHERE event_id = ?", (event_id,)
@@ -148,10 +146,10 @@ class Store:
     def list_events(
         self,
         *,
-        from_year: Optional[int] = None,
-        to_year: Optional[int] = None,
-        event_type: Optional[EventType] = None,
-        character_id: Optional[str] = None,
+        from_year: int | None = None,
+        to_year: int | None = None,
+        event_type: EventType | None = None,
+        character_id: str | None = None,
     ) -> list[ChronicleEvent]:
         sql = "SELECT payload FROM events WHERE 1=1"
         params: list = []
@@ -188,13 +186,13 @@ class Store:
         event_id: str,
         agent: str,
         language: str = "en",
-        title: Optional[str],
+        title: str | None,
         body: str,
-        model: Optional[str] = None,
-        input_tokens: Optional[int] = None,
-        output_tokens: Optional[int] = None,
-        cached_input_tokens: Optional[int] = None,
-        cost_usd: Optional[float] = None,
+        model: str | None = None,
+        input_tokens: int | None = None,
+        output_tokens: int | None = None,
+        cached_input_tokens: int | None = None,
+        cost_usd: float | None = None,
     ) -> None:
         with self._conn() as c:
             c.execute(
@@ -233,7 +231,7 @@ class Store:
         self,
         event_id: str,
         *,
-        language: Optional[str] = None,
+        language: str | None = None,
     ) -> list[dict]:
         sql = "SELECT agent, language, title, body, model FROM chronicles WHERE event_id = ?"
         params: list = [event_id]
@@ -317,4 +315,4 @@ def _migrate(conn: sqlite3.Connection) -> None:
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()

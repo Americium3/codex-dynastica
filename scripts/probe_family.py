@@ -56,7 +56,7 @@ wars = parsed.get("wars") or {}
 for wid, w in list(wars.items())[:3]:
     if isinstance(w, dict):
         print(f"war {wid} keys:", list(w.keys())[:30])
-        print(f"  name:", w.get("name"))
+        print("  name:", w.get("name"))
         for k in ("attackers", "defenders", "attacker", "defender", "attacker_participants", "defender_participants"):
             v = w.get(k)
             if v is not None:

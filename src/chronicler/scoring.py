@@ -1,11 +1,14 @@
-"""Significance scoring + scope presets — shared between the save-file
-importer (``scripts/import_dynasty.py``) and the live-hook watcher
-(``parsers/live_hook.py`` via the ``watch`` CLI command).
+"""Significance scoring, scope presets, and era-mood stamping — shared
+between the save-file importer (``scripts/import_dynasty.py``) and the
+live-hook watcher (``parsers/live_hook.py`` via the ``watch`` CLI
+command).
 
 Phase 0.3 introduced the significance table inside the importer. Phase
-0.4 lifts it into the package so the same ranking can gate which
-live-hook events are passed to the LLM in real time — saves a token
-budget on flavor events without dropping them from the database.
+0.4 lifted it into the package so the same ranking can gate which
+live-hook events are passed to the LLM in real time. Phase 0.5 lifts
+era_mood stamping into the same module so it has direct test
+coverage and so the live-hook path can optionally stamp moods over a
+sliding window of recent events.
 
 Scope presets (Phase 0.4) make ``--scope`` carry both *what* to pull
 AND *how strict* the cutoff is, so the player picks one knob instead of
@@ -18,7 +21,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .schema import ChronicleEvent, EventType
-
 
 # Higher = more newsworthy. The chronicle keeps the top-N by this score,
 # tie-broken by recency. Calibrated so an ordinary house-member death
@@ -114,3 +116,66 @@ def resolve_scope(name: str) -> ScopePreset:
     back to ``middle`` rather than raising; callers should validate the
     argparse choice list separately."""
     return SCOPE_PRESETS.get(name, SCOPE_PRESETS["middle"])
+
+
+# ---------- Phase 0.5: era-mood stamping (lifted from import_dynasty.py) ----------
+
+# "Dark" events used to score how turbulent a period is. Births, marriages,
+# coronations, artifacts, activities are excluded on purpose — those are
+# the moments folk songs would naturally sing brightly about even in
+# hard times, so they don't define the era weather.
+DARK_EVENT_TYPES: set[EventType] = {
+    EventType.RULER_DEATH,
+    EventType.MURDER,
+    EventType.WAR_END,
+    EventType.BATTLE,
+    EventType.DISASTER,
+    EventType.GREAT_HOLY_WAR,
+    EventType.HERESY_OUTBREAK,
+}
+
+# Calibrated bands. Tested in tests/test_era_mood.py — moving these
+# thresholds is a deliberate tuning choice that must show up in diffs.
+TURBULENT_RATIO = 1.4
+PEACEFUL_RATIO = 0.6
+
+
+def stamp_era_mood(
+    events: list[ChronicleEvent],
+    *,
+    window_radius_years: int = 15,
+) -> None:
+    """Annotate each event in ``events`` with ``era_mood`` based on the
+    density of dark events in a ±``window_radius_years`` window around
+    it, compared to the overall mean across the input set.
+
+    Sets ``era_mood`` to:
+      * ``"turbulent"`` — local dark-count ≥ TURBULENT_RATIO × mean
+      * ``"peaceful"`` — local dark-count ≤ PEACEFUL_RATIO × mean
+      * ``"ordinary"`` — within the band around the mean
+
+    Edge cases that leave ``era_mood`` as ``None``:
+      * Fewer than 3 events — not enough signal to compute a baseline
+      * No dark events at all in the set — nothing to measure density against
+      * Mean dark-count somehow zero — defensive guard
+    """
+    if len(events) < 3:
+        return
+    dark_years = [e.year for e in events if e.type in DARK_EVENT_TYPES]
+    if not dark_years:
+        return
+    local_counts: list[int] = []
+    for e in events:
+        lo, hi = e.year - window_radius_years, e.year + window_radius_years
+        local_counts.append(sum(1 for y in dark_years if lo <= y <= hi))
+    mean = sum(local_counts) / len(local_counts)
+    if mean <= 0:
+        return
+    for e, n in zip(events, local_counts, strict=True):
+        ratio = n / mean
+        if ratio >= TURBULENT_RATIO:
+            e.era_mood = "turbulent"
+        elif ratio <= PEACEFUL_RATIO:
+            e.era_mood = "peaceful"
+        else:
+            e.era_mood = "ordinary"

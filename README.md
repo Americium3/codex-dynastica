@@ -12,7 +12,8 @@ CK3's biggest narrative gap is that 300 years of play produce no real *history*.
 - **Phase 0.1 — Dynastic title-holder scope + local-model (Ollama) backend.** ✅ done.
 - **Phase 0.2 — Player-selectable scope (narrow / middle / wide) + shorter chronicles.** ✅ done.
 - **Phase 0.3 — Significance-based event selection + `era_mood` ballad bias + imagery library ×20.** ✅ done.
-- **Phase 0.4 — Real-time event ingest via live-hook + tiered selectivity presets.** ✅ done (this revision).
+- **Phase 0.4 — Real-time event ingest via live-hook + tiered selectivity presets.** ✅ done.
+- **Phase 0.5 — CI bootstrap (ruff + pytest on GitHub Actions) + test backfill (6 → 59 tests).** ✅ done (this revision).
 - **Phase 1 — In-game Royal Library UI (vanilla-fidelity) + cloud-API picker (RimTalk style).** 🚧 not started.
 - **Phase 2 — Enemy + Church perspectives.** 🚧 not started.
 - **Phase 3 — Historical drift, physical carriers, gameplay reverse hooks.** 🚧 not started.

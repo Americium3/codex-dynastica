@@ -85,7 +85,7 @@ if isinstance(schemes, dict):
                     samp = v[inner]
                     if isinstance(samp, dict):
                         print(f"    schemes.{k}.{inner} keys:", list(samp.keys())[:25])
-                        print(f"    sample:", {kk: samp[kk] for kk in list(samp.keys())[:10]})
+                        print("    sample:", {kk: samp[kk] for kk in list(samp.keys())[:10]})
 
 # 4. stories
 banner("stories")
@@ -101,7 +101,7 @@ if isinstance(stories, dict):
             sub = list(v.keys())[0]
             if isinstance(v[sub], dict):
                 print(f"    stories.{k}.{sub} keys:", list(v[sub].keys())[:20])
-                print(f"    sample:", {kk: v[sub][kk] for kk in list(v[sub].keys())[:8]})
+                print("    sample:", {kk: v[sub][kk] for kk in list(v[sub].keys())[:8]})
 
 # 5. artifacts (top-level)
 banner("artifacts")
@@ -118,7 +118,7 @@ if isinstance(artifacts, dict):
             samp = v[sub]
             if isinstance(samp, dict):
                 print(f"    artifacts.{k}.{sub} keys:", list(samp.keys())[:25])
-                print(f"    sample:", {kk: samp[kk] for kk in list(samp.keys())[:8]})
+                print("    sample:", {kk: samp[kk] for kk in list(samp.keys())[:8]})
 
 # 6. activities
 banner("activities (activity_manager)")

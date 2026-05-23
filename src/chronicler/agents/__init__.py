@@ -1,7 +1,5 @@
 """Narrative agents: each agent renders events from a distinct voice/perspective."""
 
-from typing import Optional
-
 from .base import Agent, AgentResult, ClaudeClient, DryRunClient, LLMClient, OllamaClient
 from .court_historian import CourtHistorian
 from .peasant_ballad import PeasantBallad
@@ -13,8 +11,8 @@ AGENTS_BY_NAME: dict[str, type[Agent]] = {cls.name: cls for cls in ALL_AGENTS}
 def build_agents(
     client: LLMClient,
     *,
-    model_override: Optional[str] = None,
-    only: Optional[list[str]] = None,
+    model_override: str | None = None,
+    only: list[str] | None = None,
 ) -> list[Agent]:
     """Instantiate registered agents against a shared LLM client.
 

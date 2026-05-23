@@ -25,16 +25,13 @@ from chronicler.parsers.save_import import (  # noqa: E402
     convert_save_to_json,
 )
 from chronicler.schema import (  # noqa: E402
-    Actor,
     ChronicleEvent,
     EventType,
     Outcome,
     Source,
-    Location,
     make_event_id,
 )
 from chronicler.storage import Store  # noqa: E402
-
 
 MURDER_REASONS = {"death_murder", "death_assassination", "death_poison", "death_duel"}
 

@@ -20,8 +20,8 @@ from __future__ import annotations
 import json
 import logging
 import time
+from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import Callable, Iterator, Optional
 
 from pydantic import ValidationError
 
@@ -70,7 +70,7 @@ def watch(
     on_event: Callable[[ChronicleEvent], None],
     *,
     poll_interval: float = 1.0,
-    stop_after: Optional[float] = None,
+    stop_after: float | None = None,
 ) -> None:
     """Tail `path` indefinitely (or until `stop_after` seconds elapse).
 

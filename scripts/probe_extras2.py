@@ -21,7 +21,7 @@ if isinstance(comp, dict):
         v = comp[k]
         if isinstance(v, dict):
             print(f"  completed.{k} keys:", list(v.keys())[:25])
-            print(f"  sample:", {kk: v[kk] for kk in list(v.keys())[:12]})
+            print("  sample:", {kk: v[kk] for kk in list(v.keys())[:12]})
 elif isinstance(comp, list):
     print("completed sample first:", comp[0] if comp else None)
 
@@ -51,7 +51,7 @@ if isinstance(relations, dict):
         v = relations[k]
         if isinstance(v, dict):
             print(f"  relations[{k}] keys:", list(v.keys())[:20])
-            print(f"  sample:", {kk: v[kk] for kk in list(v.keys())[:10]})
+            print("  sample:", {kk: v[kk] for kk in list(v.keys())[:10]})
 
 # Look for spouse/marriage with date specifically
 print("\n--- searching relations for spouse/lover/friend ---")
@@ -72,7 +72,7 @@ for aid, a in list(artifacts.items())[:5000]:
             ents = hist.get("entries") or []
             print(f"    history entries ({len(ents)}):")
             for e in ents[:5]:
-                print(f"     ", e)
+                print("     ", e)
         break
 
 # Combat_results: ensure the dates work

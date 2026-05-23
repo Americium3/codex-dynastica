@@ -28,7 +28,6 @@ sys.path.insert(0, str(HERE / "src"))
 from chronicler.parsers.save_import import _make_actor, convert_save_to_json  # noqa: E402
 from chronicler.schema import (  # noqa: E402
     Actor,
-    Casualties,
     ChronicleEvent,
     EventType,
     Faction,
@@ -38,7 +37,6 @@ from chronicler.schema import (  # noqa: E402
     make_event_id,
 )
 from chronicler.storage import Store  # noqa: E402
-
 
 MURDER_REASONS = {"death_murder", "death_assassination", "death_poison", "death_duel"}
 

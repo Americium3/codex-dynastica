@@ -75,8 +75,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(HERE / "src"))
 
-from chronicler.parsers.save_import import _make_actor, convert_save_to_json  # noqa: E402
-from chronicler.schema import (  # noqa: E402
+from chronicler.parsers.save_import import _make_actor, convert_save_to_json
+from chronicler.schema import (
     Actor,
     Casualties,
     ChronicleEvent,
@@ -87,9 +87,9 @@ from chronicler.schema import (  # noqa: E402
     Source,
     make_event_id,
 )
-from chronicler.scoring import resolve_scope, significance as _significance  # noqa: E402
-from chronicler.storage import Store  # noqa: E402
-
+from chronicler.scoring import resolve_scope, stamp_era_mood
+from chronicler.scoring import significance as _significance
+from chronicler.storage import Store
 
 # ---------- trait classification ----------
 
@@ -1088,7 +1088,7 @@ def _extract_notable_landed_deaths(
     # Keep the latest N (closest to the save's present).
     out.sort(key=lambda t: t[0])
     out = out[-max_events:]
-    for date, cid, c, reason, dd in out:
+    for date, cid, _c, reason, dd in out:
         y, m, d = date
         is_murder = (
             reason in MURDER_REASONS or "murder" in reason or "assassin" in reason
@@ -1117,60 +1117,9 @@ def _extract_notable_landed_deaths(
 
 # ---------- Phase 0.3: era-mood stamping ----------
 
-# "Dark" events used to score how turbulent a period is. Births, marriages,
-# coronations, artifacts, activities are excluded from the dark count on
-# purpose — those are the moments folk songs would naturally sing brightly
-# about, even in hard times.
-DARK_EVENT_TYPES = {
-    EventType.RULER_DEATH,
-    EventType.MURDER,
-    EventType.WAR_END,
-    EventType.BATTLE,
-    EventType.DISASTER,
-    EventType.GREAT_HOLY_WAR,
-    EventType.HERESY_OUTBREAK,
-}
-
-
-def _stamp_era_mood(
-    events: list[ChronicleEvent],
-    *,
-    window_radius_years: int = 15,
-) -> None:
-    """Annotate each event with ``era_mood`` based on the density of dark
-    events in a ±``window_radius_years`` window around it, compared to the
-    overall mean across the chronicle.
-
-    Sets ``era_mood`` to one of:
-      * ``"turbulent"`` — local dark-count ≥ 1.4 × mean (war / plague decade)
-      * ``"peaceful"`` — local dark-count ≤ 0.6 × mean (lull between storms)
-      * ``"ordinary"`` — within the band around the mean
-
-    When the chronicle has fewer than 3 events overall we don't have enough
-    signal to compute a baseline; leave ``era_mood`` as ``None`` and the
-    ballad falls back to its per-event tonal logic alone.
-    """
-    if len(events) < 3:
-        return
-    dark_years = [e.year for e in events if e.type in DARK_EVENT_TYPES]
-    if not dark_years:
-        return
-    # Local dark-count for each event.
-    local_counts: list[int] = []
-    for e in events:
-        lo, hi = e.year - window_radius_years, e.year + window_radius_years
-        local_counts.append(sum(1 for y in dark_years if lo <= y <= hi))
-    mean = sum(local_counts) / len(local_counts)
-    if mean <= 0:
-        return
-    for e, n in zip(events, local_counts):
-        ratio = n / mean
-        if ratio >= 1.4:
-            e.era_mood = "turbulent"
-        elif ratio <= 0.6:
-            e.era_mood = "peaceful"
-        else:
-            e.era_mood = "ordinary"
+# (DARK_EVENT_TYPES + _stamp_era_mood moved to chronicler.scoring in
+# Phase 0.5 so the function gets direct test coverage. The importer
+# calls ``stamp_era_mood`` from there.)
 
 
 # ---------- Phase 0.3: significance-based selection ----------
@@ -1215,7 +1164,7 @@ def _cap_per_type(events: list[ChronicleEvent], cap: int) -> list[ChronicleEvent
     for e in events:
         by_type.setdefault(e.type.value, []).append(e)
     out: list[ChronicleEvent] = []
-    for t, lst in by_type.items():
+    for _t, lst in by_type.items():
         lst.sort(key=lambda e: (e.year, e.month or 0, e.day or 0), reverse=True)
         out.extend(lst[:cap])
     out.sort(key=lambda e: (e.year, e.month or 0, e.day or 0))
@@ -1308,7 +1257,7 @@ def main():
     # Government / regnal year heuristic.
     became = ld.get("became_ruler_date")
     became_date = _parse_date(became) if isinstance(became, str) else None
-    regnal_year = save_year - became_date[0] if became_date else None
+    # regnal_year retained inline in print/log below if needed; not used here.
 
     world_context = (
         f"This volume of the chronicle is presently being compiled at the court of "
@@ -1526,7 +1475,7 @@ def main():
     # Phase 0.3: era-mood stamping. Has to come AFTER selection so the
     # mean is computed against the events the player will actually read,
     # not against all the raw candidates.
-    _stamp_era_mood(events)
+    stamp_era_mood(events)
     moods = {}
     for e in events:
         if e.era_mood:

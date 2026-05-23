@@ -34,7 +34,7 @@ if lt:
     sample_id = list(lt.keys())[0]
     s = lt[sample_id]
     print(f"sample title {sample_id} keys:", list(s.keys())[:30])
-    print(f"  holder:", s.get("holder"), "  key:", s.get("key"))
+    print("  holder:", s.get("holder"), "  key:", s.get("key"))
 
 # Look at the player's primary title (first domain entry)
 domain = ld.get("domain") or []
@@ -50,7 +50,7 @@ if domain:
         # title history?
         hist = pt.get("history") or pt.get("title_history")
         if hist:
-            print(f"  history sample:", str(hist)[:300])
+            print("  history sample:", str(hist)[:300])
 
 # Wars
 wars_root = parsed.get("wars") or {}

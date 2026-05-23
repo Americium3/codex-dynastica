@@ -27,7 +27,6 @@ from __future__ import annotations
 from ..schema import ChronicleEvent
 from .base import Agent, event_brief
 
-
 # ---------------------------------------------------------------------------
 # English imagery library — eight categories, ~20× expansion over Phase 0.1.2.
 # Words drawn from medieval rural England + greater Anglo-Saxon vocabulary,

@@ -18,8 +18,8 @@ for cid in keys[:3]:
     c = dead[cid]
     print(f"--- dead {cid} keys ---", list(c.keys())[:30])
     if isinstance(c.get("dead_data"), dict):
-        print(f"  dead_data keys:", list(c["dead_data"].keys())[:20])
-        print(f"  dead_data sample:", {k: c["dead_data"][k] for k in list(c["dead_data"].keys())[:8]})
+        print("  dead_data keys:", list(c["dead_data"].keys())[:20])
+        print("  dead_data sample:", {k: c["dead_data"][k] for k in list(c["dead_data"].keys())[:8]})
 
 # Look for war / title-history-ish keys
 for k in sorted(parsed.keys()):

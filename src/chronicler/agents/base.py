@@ -21,7 +21,7 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional, Protocol
+from typing import Protocol
 from urllib import request as _urlrequest
 from urllib.error import URLError
 
@@ -71,7 +71,7 @@ class ClaudeClient:
     """Real Anthropic SDK client. Imported lazily so the package works
     without anthropic installed (tests use DryRunClient)."""
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         try:
             from anthropic import Anthropic
         except ImportError as e:
@@ -263,7 +263,7 @@ class Agent(ABC):
         client: LLMClient,
         *,
         max_tokens: int = 350,
-        model_override: Optional[str] = None,
+        model_override: str | None = None,
     ):
         self.client = client
         self.max_tokens = max_tokens

@@ -12,13 +12,12 @@ EN/中文 page, render twice into two HTML files.
 from __future__ import annotations
 
 import html
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, Optional
 
 from ..i18n import _, set_locale
 from ..schema import ChronicleEvent
 from ..storage import Store
-
 
 PAGE_CSS = """
 :root {
@@ -157,8 +156,8 @@ def render_html(
     store: Store,
     output_path: str | Path,
     *,
-    title: Optional[str] = None,
-    subtitle: Optional[str] = None,
+    title: str | None = None,
+    subtitle: str | None = None,
     language: str = "en",
     events: Iterable[ChronicleEvent] | None = None,
 ) -> Path:

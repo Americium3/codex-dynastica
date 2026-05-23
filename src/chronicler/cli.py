@@ -21,7 +21,6 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Optional
 
 from . import __version__
 from .agents import (  # type: ignore[attr-defined]
@@ -47,7 +46,7 @@ from .schema import EventType
 from .storage import Store
 
 
-def _make_client(args: argparse.Namespace) -> tuple[LLMClient, Optional[str]]:
+def _make_client(args: argparse.Namespace) -> tuple[LLMClient, str | None]:
     """Return (client, model_override). model_override is non-None for
     backends whose model namespace doesn't match the built-in Anthropic
     one (currently: ollama)."""
@@ -396,7 +395,7 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.locale:

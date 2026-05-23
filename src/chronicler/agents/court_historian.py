@@ -13,7 +13,6 @@ from __future__ import annotations
 from ..schema import ChronicleEvent
 from .base import Agent, event_brief
 
-
 SYSTEM_PROMPT_EN = """You are a court chronicler in the service of a medieval dynasty. You write entries for a chronicle in the manner of Bede or William of Tyre *as rendered in modern English translation* — solemn and somewhat archaic in cadence, but always plainly understandable to a literate modern reader. NEVER write the title or any prose in Latin. NEVER use untranslated Latin phrases.
 
 ## Anchoring (CRITICAL)

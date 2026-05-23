@@ -27,8 +27,9 @@ import logging
 import os
 import shutil
 import subprocess
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Iterable, Iterator, Optional
+from typing import Any
 
 from ..schema import (
     Actor,
@@ -37,7 +38,6 @@ from ..schema import (
     EventType,
     Faction,
     FactionSide,
-    Location,
     Outcome,
     Source,
     make_event_id,
@@ -50,7 +50,7 @@ class RakalyNotFoundError(RuntimeError):
     """Raised when rakaly is required but not installed on PATH."""
 
 
-def _project_root_bin() -> Optional[Path]:
+def _project_root_bin() -> Path | None:
     """Look upward from this file for a sibling ``bin/`` directory.
 
     Lets the project ship a pinned rakaly without touching system PATH.
@@ -63,7 +63,7 @@ def _project_root_bin() -> Optional[Path]:
     return None
 
 
-def _rakaly_path() -> Optional[str]:
+def _rakaly_path() -> str | None:
     """Find rakaly. Precedence: $CHRONICLER_RAKALY → project bin/ → PATH."""
     env = os.environ.get("CHRONICLER_RAKALY")
     if env and Path(env).exists():
@@ -82,7 +82,7 @@ def rakaly_available() -> bool:
     return _rakaly_path() is not None
 
 
-def convert_save_to_json(save_path: str | Path, out_path: Optional[str | Path] = None) -> Path:
+def convert_save_to_json(save_path: str | Path, out_path: str | Path | None = None) -> Path:
     """Invoke rakaly to convert a .ck3 save into JSON.
 
     Returns the path to the resulting JSON file. If `out_path` is omitted,
@@ -119,7 +119,7 @@ def parse_save(save_path: str | Path) -> dict:
 
 
 def parse_save_json(json_path: str | Path) -> dict:
-    with open(json_path, "r", encoding="utf-8") as f:
+    with open(json_path, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -394,7 +394,7 @@ def _aslist(v: Any) -> list:
     return [v]
 
 
-def _strify(v: Any) -> Optional[str]:
+def _strify(v: Any) -> str | None:
     if v is None:
         return None
     if isinstance(v, (str, int)):
@@ -407,14 +407,14 @@ def _strify(v: Any) -> Optional[str]:
     return str(v)
 
 
-def _safe_int(v: Any) -> Optional[int]:
+def _safe_int(v: Any) -> int | None:
     try:
         return int(v) if v is not None else None
     except (TypeError, ValueError):
         return None
 
 
-def _parse_date(v: Any) -> Optional[tuple[int, int, int]]:
+def _parse_date(v: Any) -> tuple[int, int, int] | None:
     """Parse PDX dates. Common shapes: 'YYYY.M.D' string or [Y, M, D] list."""
     if v is None:
         return None

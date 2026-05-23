@@ -78,6 +78,23 @@ Save-file imports are great for retrospectives but force a save-then-import danc
 - [ ] **CK3 mod `.txt` files** — actual `on_action` and `scripted_effect` definitions. Deferred to Phase 1, where they ride alongside the in-game UI work. The watcher pipeline is fully testable today by hand-writing JSONL lines.
 - [ ] **`scripts/extract_vd_events.py`** — companion `script.log` → `events.jsonl` extractor. Deferred to Phase 1.
 
+## Phase 0.5 — CI bootstrap + test backfill ✅
+
+Phase 0.3 and 0.4 shipped several hundred lines (`scoring.py`, `ScopePreset`, era_mood computation, `watch --generate`) without adding a single test. Phase 0.5 closes the gap before the Phase 1 mod-file work, so future PRs catch regressions automatically.
+
+- [x] **GitHub Actions CI** (`.github/workflows/ci.yml`) — two jobs:
+  - `lint` runs `ruff check src tests scripts`
+  - `test` runs `pytest -q` on Python 3.11 + 3.12 (3.11 is the floor, 3.12 catches forward-compat drift cheaply)
+  - Triggered on every push to every branch + every PR targeting `main`
+  - In-flight runs cancelled when a new commit lands on the same ref (saves minutes on rebase storms)
+- [x] **Branch protection follow-up** (manual, ruleset on GitHub) — `Require status checks: lint, test (3.11), test (3.12)` should be enabled so `main` can't merge red PRs.
+- [x] **Baseline ruff pass** — fixed 96 auto-fixable issues and 6 hand-fixes (loop var renames, `zip(strict=True)`, dead variable, unused import). Added `UP042` (StrEnum migration) and per-file `E402` (sys.path manipulation) to the ignore set with comments explaining why.
+- [x] **`tests/test_scoring.py`** (26 tests) — pins SIGNIFICANCE table calibration, tag-aware `significance()` adjustments (heir +12, title +6, notable_ruler −15, house_member −8, rarity +10), SCOPE_PRESETS structure, `resolve_scope()` fallback behavior.
+- [x] **`tests/test_era_mood.py`** (15 tests) — covers `stamp_era_mood()` under all three regimes (turbulent / peaceful / ordinary), edge cases (fewer-than-three events, no darks at all, empty input), threshold pinning (1.4× / 0.6×), `DARK_EVENT_TYPES` membership.
+- [x] **`tests/test_watch_generate.py`** (12 tests) — JSONL ingest validation (valid line, bad JSON, schema mismatch), `--min-significance` gate (low-sig event lands in DB but skips LLM; high-sig event generates chronicles in EN+ZH for all agents), CLI argparse surface.
+- [x] **Lifted `stamp_era_mood` + `DARK_EVENT_TYPES` to `chronicler.scoring`** — previously buried inside `scripts/import_dynasty.py` where it couldn't be imported by tests. Importer now calls into the shared module.
+- Result: pytest 6 → **59 tests**, ~10× the coverage. All green; ruff clean.
+
 ## Phase 1 — In-game Royal Library UI + cloud-API picker
 
 Hard requirement: **visually indistinguishable from vanilla CK3**. It should feel like an official DLC, not a modder add-on. Adds RimTalk-style provider/key/model selection in mod settings so players can use any cloud LLM (or keep using their local Ollama).

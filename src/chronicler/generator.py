@@ -8,8 +8,8 @@ chronicled (idempotent).
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from typing import Iterable, Optional, Sequence
 
 from .agents import Agent, build_agents  # noqa: F401  (re-exported)
 from .schema import ChronicleEvent, EventType
@@ -92,10 +92,10 @@ def generate_range(
     *,
     store: Store,
     agents: list[Agent],
-    from_year: Optional[int] = None,
-    to_year: Optional[int] = None,
-    event_type: Optional[EventType] = None,
-    character_id: Optional[str] = None,
+    from_year: int | None = None,
+    to_year: int | None = None,
+    event_type: EventType | None = None,
+    character_id: str | None = None,
     languages: Sequence[str] = ("en",),
     force: bool = False,
 ) -> GenerationStats:

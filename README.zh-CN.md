@@ -12,7 +12,8 @@
 - **Phase 0.1 — 王朝主头衔范围 + 本地 Ollama 后端** ✅ 完成
 - **Phase 0.2 — 玩家可选作用域（narrow / middle / wide）+ 缩短编年史** ✅ 完成
 - **Phase 0.3 — 显赫度筛事件 + `era_mood` 歌谣调色 + 意象库 ×20** ✅ 完成
-- **Phase 0.4 — live-hook 实时事件采集 + 分层严格度预设** ✅ 完成（本次提交）
+- **Phase 0.4 — live-hook 实时事件采集 + 分层严格度预设** ✅ 完成
+- **Phase 0.5 — CI 自动化（GitHub Actions ruff + pytest）+ 测试补齐（6→59 测）** ✅ 完成（本次提交）
 - **Phase 1 — 游戏内王室图书馆 GUI（原生风格）+ 云端 API 选择器（RimTalk 模式）** 🚧 未开始
 - **Phase 2 — 敌国 + 教会视角** 🚧 未开始
 - **Phase 3 — 历史漂移 + 物理载体 + Gameplay 反向钩子** 🚧 未开始

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import hashlib
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -57,35 +56,35 @@ class Outcome(str, Enum):
 
 
 class Location(BaseModel):
-    county_id: Optional[str] = None
-    county_name: Optional[str] = None
-    duchy_name: Optional[str] = None
-    kingdom_name: Optional[str] = None
-    region: Optional[str] = None
+    county_id: str | None = None
+    county_name: str | None = None
+    duchy_name: str | None = None
+    kingdom_name: str | None = None
+    region: str | None = None
 
 
 class Actor(BaseModel):
     character_id: str
     name: str
-    dynasty: Optional[str] = None
-    culture: Optional[str] = None
-    religion: Optional[str] = None
+    dynasty: str | None = None
+    culture: str | None = None
+    religion: str | None = None
     titles: list[str] = Field(default_factory=list)
     traits: list[str] = Field(default_factory=list)
-    age_at_event: Optional[int] = None
+    age_at_event: int | None = None
 
 
 class Faction(BaseModel):
     name: str
     side: FactionSide
-    religion: Optional[str] = None
-    culture: Optional[str] = None
+    religion: str | None = None
+    culture: str | None = None
 
 
 class Casualties(BaseModel):
-    attacker_dead: Optional[int] = None
-    defender_dead: Optional[int] = None
-    civilian_dead_estimate: Optional[int] = None
+    attacker_dead: int | None = None
+    defender_dead: int | None = None
+    civilian_dead_estimate: int | None = None
 
 
 class ChronicleEvent(BaseModel):
@@ -93,28 +92,28 @@ class ChronicleEvent(BaseModel):
     source: Source
     type: EventType
     year: int = Field(ge=1, le=4000)
-    month: Optional[int] = Field(default=None, ge=1, le=12)
-    day: Optional[int] = Field(default=None, ge=1, le=31)
-    location: Optional[Location] = None
+    month: int | None = Field(default=None, ge=1, le=12)
+    day: int | None = Field(default=None, ge=1, le=31)
+    location: Location | None = None
     primary_actors: list[Actor] = Field(min_length=1)
     secondary_actors: list[Actor] = Field(default_factory=list)
     factions: list[Faction] = Field(default_factory=list)
     religions_involved: list[str] = Field(default_factory=list)
-    casualties: Optional[Casualties] = None
-    outcome: Optional[Outcome] = None
+    casualties: Casualties | None = None
+    outcome: Outcome | None = None
     tags: list[str] = Field(default_factory=list)
-    raw_excerpt: Optional[str] = None
+    raw_excerpt: str | None = None
     witnesses: list[str] = Field(default_factory=list)
     # Phase 0.1: a short context block describing the reigning ruler /
     # primary title / dynasty / regnal year. Set once per import; the
     # narrative agents read it on every event so the LLM stops inventing
     # off-screen kings ("King Alaric") out of thin air.
-    world_context: Optional[str] = None
+    world_context: str | None = None
     # Phase 0.1.2: per-event note about who held the primary title at
     # ``event.year`` — for events that predate the compiler's reign, this
     # is the only correct anchor for "Nth year of his reign" phrasing.
     # When unset (None), agents should not attempt to cite a regnal year.
-    contemporary_ruler: Optional[str] = None
+    contemporary_ruler: str | None = None
     # Phase 0.3: era_mood describes the ±15-year "weather" around this
     # event — turbulent / ordinary / peaceful — relative to the chronicle's
     # own baseline. Computed by the importer from the density of wars /
@@ -122,7 +121,7 @@ class ChronicleEvent(BaseModel):
     # ballad's tonal bias: a birth song in a turbulent decade is still
     # joyful but carries a refrain of grief; an ordinary death in a
     # peaceful decade is mourned with extra weight.
-    era_mood: Optional[str] = None
+    era_mood: str | None = None
 
     @field_validator("event_id")
     @classmethod

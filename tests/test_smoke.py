@@ -17,7 +17,6 @@ from chronicler.parsers.save_import import extract_events, parse_save_json
 from chronicler.render import render_html
 from chronicler.storage import Store
 
-
 FIXTURES = Path(__file__).parent / "fixtures"
 
 
@@ -72,7 +71,7 @@ def test_live_hook_jsonl(tmp_path: Path) -> None:
 
 def test_event_id_dedup_across_sources(tmp_path: Path) -> None:
     db = tmp_path / "chronicle.db"
-    store = Store(db)
+    Store(db)  # smoke-create the DB; constructor exercises schema migration
     parsed = parse_save_json(FIXTURES / "sample_save.json")
     events = list(extract_events(parsed))
     ids = {e.event_id for e in events}
