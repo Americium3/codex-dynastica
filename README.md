@@ -6,10 +6,6 @@
 
 CK3's biggest narrative gap is that 300 years of play produce no real *history*. Generic event text repeats. Your dynasty has no remembered past. **Vox Dynastica** uses large language models to generate living, biased, contradictory chronicles of the same events — court histories, peasant ballads, and (in later phases) enemy histories and church records — so the same war can be remembered as a holy victory in one chamber and a tax raid in another village.
 
-### Scope: dynastic, not familial
-
-Starting from **Phase 0.1**, this repo focuses on the **dynastic / primary-title** view of history: who held the throne, what wars they fought on its behalf, who their heir was, and what state the realm was in. **Family-history** (every cousin's wedding, every great-aunt's death) is being split into a sibling project so this one can stay sharp.
-
 ## Status
 
 - **Phase 0 — Court Historian + Peasant Ballad MVP.** ✅ done.
