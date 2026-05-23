@@ -1114,6 +1114,146 @@ def _extract_notable_landed_deaths(
         )
 
 
+# ---------- Phase 0.3: era-mood stamping ----------
+
+# "Dark" events used to score how turbulent a period is. Births, marriages,
+# coronations, artifacts, activities are excluded from the dark count on
+# purpose — those are the moments folk songs would naturally sing brightly
+# about, even in hard times.
+DARK_EVENT_TYPES = {
+    EventType.RULER_DEATH,
+    EventType.MURDER,
+    EventType.WAR_END,
+    EventType.BATTLE,
+    EventType.DISASTER,
+    EventType.GREAT_HOLY_WAR,
+    EventType.HERESY_OUTBREAK,
+}
+
+
+def _stamp_era_mood(
+    events: list[ChronicleEvent],
+    *,
+    window_radius_years: int = 15,
+) -> None:
+    """Annotate each event with ``era_mood`` based on the density of dark
+    events in a ±``window_radius_years`` window around it, compared to the
+    overall mean across the chronicle.
+
+    Sets ``era_mood`` to one of:
+      * ``"turbulent"`` — local dark-count ≥ 1.4 × mean (war / plague decade)
+      * ``"peaceful"`` — local dark-count ≤ 0.6 × mean (lull between storms)
+      * ``"ordinary"`` — within the band around the mean
+
+    When the chronicle has fewer than 3 events overall we don't have enough
+    signal to compute a baseline; leave ``era_mood`` as ``None`` and the
+    ballad falls back to its per-event tonal logic alone.
+    """
+    if len(events) < 3:
+        return
+    dark_years = [e.year for e in events if e.type in DARK_EVENT_TYPES]
+    if not dark_years:
+        return
+    # Local dark-count for each event.
+    local_counts: list[int] = []
+    for e in events:
+        lo, hi = e.year - window_radius_years, e.year + window_radius_years
+        local_counts.append(sum(1 for y in dark_years if lo <= y <= hi))
+    mean = sum(local_counts) / len(local_counts)
+    if mean <= 0:
+        return
+    for e, n in zip(events, local_counts):
+        ratio = n / mean
+        if ratio >= 1.4:
+            e.era_mood = "turbulent"
+        elif ratio <= 0.6:
+            e.era_mood = "peaceful"
+        else:
+            e.era_mood = "ordinary"
+
+
+# ---------- Phase 0.3: significance-based selection ----------
+
+# Higher = more newsworthy. The chronicle keeps the top-N by this score,
+# tie-broken by recency. Calibrated so that an ordinary house-member death
+# loses to a battle the holder commanded, but a holder's own death beats
+# almost anything else.
+SIGNIFICANCE: dict[EventType, int] = {
+    EventType.MURDER:             100,
+    EventType.RULER_DEATH:         95,
+    EventType.WAR_END:             92,
+    EventType.GREAT_HOLY_WAR:      92,
+    EventType.CORONATION:          88,
+    EventType.BATTLE:              82,
+    EventType.HERESY_OUTBREAK:     78,
+    EventType.RELIGION_CHANGE:     74,
+    EventType.TITLE_CREATION:      70,
+    EventType.TITLE_DESTRUCTION:   70,
+    EventType.BIRTH:               64,   # heir; ordinary house births score lower via tag bump
+    EventType.MARRIAGE:            60,
+    EventType.ARTIFACT_ACQUIRED:   55,
+    EventType.DISASTER:            52,
+    EventType.SCHEME_SUCCESS:      50,
+    EventType.SCHEME_FAILURE:      50,
+    EventType.SCHEME_ACTIVE:       42,
+    EventType.ACTIVITY:            38,
+    EventType.STORY_EVENT:         34,
+}
+
+
+def _significance(e: ChronicleEvent) -> int:
+    """Score an event for selection ranking.
+
+    Base score comes from the type table. We then nudge it based on tags:
+      * ``heir`` tag → +12 (heir births/deaths beat ordinary house events)
+      * ``title:`` tag (primary title) → +6 (spine events beat foreign events)
+      * ``notable_ruler`` tag (wide-scope foreign death) → −15
+      * ``house_member`` tag without ``heir`` → −8 (great-aunt's death is a footnote)
+      * artifact ``rarity:famed`` / ``rarity:illustrious`` → +10
+    """
+    base = SIGNIFICANCE.get(e.type, 30)
+    tags = set(e.tags or [])
+    if "heir" in tags:
+        base += 12
+    if any(t.startswith("title:") for t in tags):
+        base += 6
+    if "notable_ruler" in tags:
+        base -= 15
+    if "house_member" in tags and "heir" not in tags:
+        base -= 8
+    if "rarity:famed" in tags or "rarity:illustrious" in tags:
+        base += 10
+    return base
+
+
+def _select_events(
+    events: list[ChronicleEvent],
+    *,
+    max_total: int,
+    max_per_type: int,
+) -> list[ChronicleEvent]:
+    """Two-stage trim: per-type cap first (so one category can't drown
+    the chronicle), then global cap by significance (so the surviving set
+    is meaningful, not just recent)."""
+    capped = _cap_per_type(events, max_per_type)
+    if len(capped) <= max_total:
+        return sorted(
+            capped, key=lambda e: (e.year, e.month or 0, e.day or 0)
+        )
+    # Rank by (significance desc, year desc, month desc, day desc).
+    ranked = sorted(
+        capped,
+        key=lambda e: (
+            -_significance(e),
+            -e.year,
+            -(e.month or 0),
+            -(e.day or 0),
+        ),
+    )
+    kept = ranked[:max_total]
+    return sorted(kept, key=lambda e: (e.year, e.month or 0, e.day or 0))
+
+
 # ---------- per-type cap ----------
 
 
@@ -1140,9 +1280,13 @@ def main():
     ap.add_argument("--db", type=Path, required=True)
     ap.add_argument("--from-year", type=int, default=None)
     ap.add_argument("--to-year", type=int, default=None)
-    ap.add_argument("--max-per-type", type=int, default=6,
-                    help="Keep at most N events of each EventType (newest first).")
-    ap.add_argument("--max-artifacts", type=int, default=6,
+    ap.add_argument("--max-per-type", type=int, default=3,
+                    help="Keep at most N events of each EventType (newest first). "
+                         "Phase 0.3 default lowered from 6 → 3.")
+    ap.add_argument("--max-events", type=int, default=12,
+                    help="Global cap. After per-type trimming, keep the top N "
+                         "by significance score (Phase 0.3). Default 12.")
+    ap.add_argument("--max-artifacts", type=int, default=4,
                     help="Hard cap on artifact extractor (saves can hold 6000+).")
     ap.add_argument("--player", type=int, default=None,
                     help="Override player char id. Default: played_character.character")
@@ -1396,10 +1540,32 @@ def main():
             ev.contemporary_ruler = line
     print(f"[info] contemporary-ruler timeline: {len(timeline)} reign-changes seen", flush=True)
 
-    # Cap per type.
+    # Phase 0.3: significance-based selection. First trim by per-type
+    # cap (so no single category drowns the chronicle), then keep the
+    # top --max-events by significance score. This replaces the old
+    # "newest N per type" naive cap.
     before = len(events)
-    events = _cap_per_type(events, args.max_per_type)
-    print(f"[info] capped per type (max {args.max_per_type}): {before} → {len(events)}", flush=True)
+    events = _select_events(
+        events,
+        max_total=args.max_events,
+        max_per_type=args.max_per_type,
+    )
+    print(
+        f"[info] selected (max_per_type={args.max_per_type}, "
+        f"max_events={args.max_events}): {before} → {len(events)}",
+        flush=True,
+    )
+
+    # Phase 0.3: era-mood stamping. Has to come AFTER selection so the
+    # mean is computed against the events the player will actually read,
+    # not against all the raw candidates.
+    _stamp_era_mood(events)
+    moods = {}
+    for e in events:
+        if e.era_mood:
+            moods[e.era_mood] = moods.get(e.era_mood, 0) + 1
+    if moods:
+        print(f"[info] era moods: {moods}", flush=True)
 
     args.db.parent.mkdir(parents=True, exist_ok=True)
     store = Store(args.db)

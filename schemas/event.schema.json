@@ -129,6 +129,11 @@
     "contemporary_ruler": {
       "type": ["string", "null"],
       "description": "Per-event note about who held the primary title at the event's year. Used by agents to anchor regnal-year phrasing for events that predate the compiler's reign."
+    },
+    "era_mood": {
+      "type": ["string", "null"],
+      "enum": ["turbulent", "ordinary", "peaceful", null],
+      "description": "Phase 0.3: the ±15-year 'weather' around the event relative to the chronicle's baseline. Computed by the importer from war/death/disaster density. Drives the peasant ballad's tonal bias."
     }
   },
   "$defs": {

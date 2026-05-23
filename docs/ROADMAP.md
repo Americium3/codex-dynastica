@@ -55,6 +55,17 @@ A single ``--scope`` CLI flag on ``scripts/import_dynasty.py`` (and, in Phase 1,
 - [x] **Shorter chronicles** — Court Historian now targets 1–2 short paragraphs / ~70–130 words (was 2–5 paragraphs / 150–280 words). Peasant Ballad targets 4–10 lines / ~30–70 words (was 8–20 lines / 60–140 words). Default ``max_tokens`` dropped from 800 → 350. Online players can't wait on novella-length entries per event.
 - [ ] Auto-pick a sensible scope from the player's lifestyle (landed → dynastic, wandering → middle, ironman → narrow). Deferred — comes with the in-game UI in Phase 1.
 
+## Phase 0.3 — Selective events, era-mood-aware ballads, imagery ×20 ✅
+
+Earlier runs surfaced ~24–27 events per chronicle — too many to read at a sitting. And every peasant ballad still skewed elegiac and reused the same five images. Phase 0.3 fixes both:
+
+- [x] **Significance-based selection** — `scripts/import_dynasty.py` now ranks candidate events by a `SIGNIFICANCE` table (murder/death/war/coronation at the top; trait/activity/story at the bottom), with tag-based nudges (`heir` +12, `title:` +6, `notable_ruler` −15, `house_member` without `heir` −8, rare artifact +10). After per-type trimming, the top N by score is kept; ties broken by recency.
+- [x] **Lower defaults** — `--max-per-type` 6 → **3**; new `--max-events` global cap default **12** (was effectively unbounded). Artifact extractor cap 6 → 4. Single-page chronicles by default.
+- [x] **`era_mood` per event** — Importer computes a ±15-year dark-event density (deaths, murders, wars, battles, disasters, heresy, holy wars) for each kept event and compares to the chronicle's own mean. Stamps `era_mood = turbulent | ordinary | peaceful`. New optional field on `ChronicleEvent` + JSON Schema; surfaced in `event_brief()` so every agent sees it.
+- [x] **Peasant ballad reads `era_mood`** — Prompts (EN + ZH) now combine *event base tone* with *era weather*: a birth in a `turbulent` era still rejoices but admits the missing brother; a death in a `peaceful` era is mourned with unusual weight ("we had not lost a son in twenty harvests"); `ordinary` follows the event's own tone. Removes the systematic elegiac bias.
+- [x] **Imagery library ×20** — Both bilingual prompts now carry massively expanded eight-category palettes (weather/food/animals/plants/tools/household/people/seasons): the English bank grew from ~90 → ~1200 items, the Chinese bank from ~90 → ~900 items. Words sub-grouped within each category so the singer can pick "early spring" vs "deep winter" cleanly. Anti-refrain rule kept and tightened.
+- [ ] Court Historian likewise should weight tone by `era_mood` (currently only the ballad reads it). Deferred to a small follow-up — the court voice is supposed to stay measured regardless of era, so the bias is more subtle there and needs its own pass.
+
 ## Phase 1 — In-game Royal Library UI + cloud-API picker
 
 Hard requirement: **visually indistinguishable from vanilla CK3**. It should feel like an official DLC, not a modder add-on. Adds RimTalk-style provider/key/model selection in mod settings so players can use any cloud LLM (or keep using their local Ollama).

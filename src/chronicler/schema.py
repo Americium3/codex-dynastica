@@ -115,6 +115,14 @@ class ChronicleEvent(BaseModel):
     # is the only correct anchor for "Nth year of his reign" phrasing.
     # When unset (None), agents should not attempt to cite a regnal year.
     contemporary_ruler: Optional[str] = None
+    # Phase 0.3: era_mood describes the ±15-year "weather" around this
+    # event — turbulent / ordinary / peaceful — relative to the chronicle's
+    # own baseline. Computed by the importer from the density of wars /
+    # deaths / disasters in the surrounding window. Drives the peasant
+    # ballad's tonal bias: a birth song in a turbulent decade is still
+    # joyful but carries a refrain of grief; an ordinary death in a
+    # peaceful decade is mourned with extra weight.
+    era_mood: Optional[str] = None
 
     @field_validator("event_id")
     @classmethod

@@ -391,11 +391,17 @@ def event_brief(event: ChronicleEvent) -> str:
         f"contemporary_ruler={event.contemporary_ruler}\n"
         if event.contemporary_ruler else ""
     )
+    # Phase 0.3: era_mood tells downstream agents (esp. the peasant
+    # ballad) how turbulent the surrounding decade is. The ballad uses
+    # this to bias tone — a birth song in a turbulent era still rejoices
+    # but carries an undercurrent of grief.
+    mood = f"era_mood={event.era_mood}\n" if event.era_mood else ""
     return (
         f"{ctx_block}"
         f"=== EVENT TO CHRONICLE (entry MUST be set in this event's year, NOT the compilation year) ===\n"
         f"date={date_str}\n"
         f"{contemp}"
+        f"{mood}"
         f"type={event.type.value}\n"
         f"location={loc_str}\n"
         f"primary_actors={primary}\n"
