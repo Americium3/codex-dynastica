@@ -164,6 +164,74 @@ def _build_title_holder_map(landed_titles: dict, chars: dict) -> dict[str, str]:
     return out
 
 
+def _build_holder_timeline(history: dict) -> list[tuple[tuple[int, int, int], str]]:
+    """Walk landed_titles[*].history and return a chronologically sorted list
+    of (date, holder_id) tuples. Used to identify who reigned at any given year.
+    """
+    out: list[tuple[tuple[int, int, int], str]] = []
+    if not isinstance(history, dict):
+        return out
+    for date_s, entry in history.items():
+        date = _parse_date(date_s)
+        if not date:
+            continue
+        if isinstance(entry, int):
+            holder = entry
+        elif isinstance(entry, dict):
+            holder = entry.get("holder")
+        else:
+            continue
+        if holder is not None:
+            out.append((date, str(holder)))
+    out.sort(key=lambda t: t[0])
+    return out
+
+
+def _contemporary_ruler(
+    timeline: list[tuple[tuple[int, int, int], str]],
+    event_year: int, event_month: int, event_day: int,
+    chars: dict,
+) -> tuple[str | None, int | None]:
+    """Return (decoded_name, regnal_year) for whoever held the primary title
+    at the given event date. Returns (None, None) if nothing in the timeline
+    precedes the event.
+    """
+    if not timeline:
+        return None, None
+    target = (event_year, event_month, event_day)
+    holder_id = None
+    reign_start: tuple[int, int, int] | None = None
+    for date, h in timeline:
+        if date <= target:
+            holder_id, reign_start = h, date
+        else:
+            break
+    if holder_id is None:
+        return None, None
+    holder = chars.get(holder_id) or {}
+    name = _decode_ck3_name(holder.get("first_name") or f"Character {holder_id}")
+    regnal = (event_year - reign_start[0]) + 1 if reign_start else None
+    return name, regnal
+
+
+def _ctx_line_for(event_year: int, event_month: int, event_day: int,
+                  timeline, chars) -> str | None:
+    name, regnal = _contemporary_ruler(timeline, event_year,
+                                       event_month or 1, event_day or 1, chars)
+    if not name:
+        return None
+    if regnal and regnal > 0:
+        return (f"At the time of this event the primary title was held by "
+                f"{name}, then in the {regnal}{_ordinal_suffix(regnal)} year of his reign.")
+    return f"At the time of this event the primary title was held by {name}."
+
+
+def _ordinal_suffix(n: int) -> str:
+    if 10 <= n % 100 <= 20:
+        return "th"
+    return {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+
+
 # ---------- event extractors (each yields ChronicleEvents) ----------
 
 
@@ -752,24 +820,35 @@ def _extract_activities(
     *, parsed: dict, current_holder_id: str, chars: dict,
     house_name: str | None, title_label: str,
     world_context: str, from_year: int, to_year: int,
+    reign_start_year: int | None = None,
 ):
-    """Activities the player has hosted or attended.
+    """Activities the reigning ruler has hosted or attended.
 
-    CK3 doesn't store a full per-activity history per character, but it
-    does keep ``last_open_activity_dates`` and ``last_hosted_activity_dates``
-    in ``played_character`` — one entry per activity type, dated to the
-    most recent occurrence. That's enough for "in the seventh year of his
-    reign His Majesty held the imperial examinations" kind of entries.
+    CK3 keeps ``last_open_activity_dates`` and ``last_hosted_activity_dates``
+    in ``played_character`` — one date per activity type, most recent
+    occurrence. We trust ``last_hosted`` (those are the player's own).
+    ``last_open`` entries dated before the player's accession are stale
+    CK3 cruft (initialized from predecessors) and are dropped — otherwise
+    the chronicle ends up claiming the present ruler attended events
+    decades before they were born.
     """
     pc = parsed.get("played_character") or {}
-    sections = [
-        ("hosted", pc.get("last_hosted_activity_dates") or {}),
-        ("attended", pc.get("last_open_activity_dates") or {}),
+    raw_sections = [
+        ("hosted", pc.get("last_hosted_activity_dates") or {}, False),
+        ("attended", pc.get("last_open_activity_dates") or {}, True),
     ]
+    sections = []
+    for role, table, drop_pre_reign in raw_sections:
+        if not isinstance(table, dict):
+            continue
+        if drop_pre_reign and reign_start_year is not None:
+            table = {k: v for k, v in table.items()
+                     if (_parse_date(v) or (0, 0, 0))[0] >= reign_start_year}
+        sections.append((role, table))
     for role, table in sections:
         if not isinstance(table, dict):
             continue
-        for activity_type, date_s in table.items():
+        for activity_type, date_s in (table.items() if isinstance(table, dict) else []):
             date = _parse_date(date_s)
             if not date:
                 continue
@@ -954,15 +1033,17 @@ def main():
     regnal_year = save_year - became_date[0] if became_date else None
 
     world_context = (
-        f"Reigning ruler: {player_first}, holder of the {title_label} "
-        f"(title key: {title_key}).\n"
-        f"House: {house_name or 'unknown'}. "
-        f"Government: {ld.get('government') or 'unknown'}.\n"
-        f"Chronicle written in the year AD {save_year}"
-        + (f", the {regnal_year}th year of his reign" if regnal_year and regnal_year > 0 else "")
-        + ".\n"
-        "Use these names exactly. Do not invent off-screen monarchs. "
-        "When referring to the reigning ruler in narrative prose, use his given name."
+        f"This volume of the chronicle is presently being compiled at the court of "
+        f"{player_first}, who in {save_year} AD holds the {title_label} "
+        f"(title key: {title_key}, house {house_name or 'unknown'}, government "
+        f"{ld.get('government') or 'unknown'}). The compiler writes in {save_year} AD.\n"
+        "Each entry below has its OWN date in the EVENT block. The entry must be "
+        "narrated as something that happened in THAT year, with the reigning monarch "
+        "OF THAT YEAR. If the event predates the present compiler's reign by decades "
+        f"or centuries, do NOT mention {player_first} in the entry, and do NOT cite "
+        f"{player_first}'s regnal year — refer to whoever the brief identifies as the "
+        "actor or the 'contemporary_ruler'.\n"
+        "Use names exactly as given. Do not invent off-screen monarchs."
     )
 
     print(f"[info] player: {player_first} (id={pid})", flush=True)
@@ -1073,6 +1154,7 @@ def main():
         house_name=house_name, title_label=title_label,
         world_context=world_context,
         from_year=args.from_year, to_year=args.to_year,
+        reign_start_year=became_date[0] if became_date else None,
     ))
     print(f"[info] activities: {len(events) - n0}", flush=True)
 
@@ -1085,6 +1167,16 @@ def main():
         from_year=args.from_year, to_year=args.to_year,
     ))
     print(f"[info] marriages: {len(events) - n0}", flush=True)
+
+    # Per-event contemporary-ruler anchor. CK3's "Nth year of his reign"
+    # phrasing is meaningful only with this stamped per event; without it
+    # the LLM falls back on the compiler's regnal year for everything.
+    timeline = _build_holder_timeline(primary_title.get("history") or {})
+    for ev in events:
+        line = _ctx_line_for(ev.year, ev.month or 1, ev.day or 1, timeline, chars)
+        if line:
+            ev.contemporary_ruler = line
+    print(f"[info] contemporary-ruler timeline: {len(timeline)} reign-changes seen", flush=True)
 
     # Cap per type.
     before = len(events)

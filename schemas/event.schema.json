@@ -125,6 +125,10 @@
     "world_context": {
       "type": ["string", "null"],
       "description": "Short context block describing the reigning ruler, primary title, dynasty, and regnal year. Set once per import; narrative agents read it on every event to anchor the narrator to real ground truth."
+    },
+    "contemporary_ruler": {
+      "type": ["string", "null"],
+      "description": "Per-event note about who held the primary title at the event's year. Used by agents to anchor regnal-year phrasing for events that predate the compiler's reign."
     }
   },
   "$defs": {

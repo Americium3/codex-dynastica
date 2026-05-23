@@ -110,6 +110,11 @@ class ChronicleEvent(BaseModel):
     # narrative agents read it on every event so the LLM stops inventing
     # off-screen kings ("King Alaric") out of thin air.
     world_context: Optional[str] = None
+    # Phase 0.1.2: per-event note about who held the primary title at
+    # ``event.year`` — for events that predate the compiler's reign, this
+    # is the only correct anchor for "Nth year of his reign" phrasing.
+    # When unset (None), agents should not attempt to cite a regnal year.
+    contemporary_ruler: Optional[str] = None
 
     @field_validator("event_id")
     @classmethod

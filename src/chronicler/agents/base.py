@@ -336,13 +336,21 @@ class Agent(ABC):
 
 def _split_title_body(text: str) -> tuple[str, str]:
     """Conventions: agent returns first line as title (optionally prefixed
-    with `# `), then a blank line, then body. Falls back gracefully if not."""
+    with ``# ``), then a blank line, then body. Falls back gracefully if not.
+
+    Also strips lingering Markdown separators (``---``) that local models
+    sometimes emit between title and body.
+    """
     lines = text.strip().split("\n")
     if not lines:
         return ("Untitled", "")
-    first = lines[0].lstrip("# ").strip()
-    if len(lines) >= 2 and lines[1].strip() == "":
-        return (first, "\n".join(lines[2:]).strip())
+    first = lines[0].lstrip("# *").strip().strip("*")
+    rest = lines[1:] if len(lines) > 1 else []
+    # Drop leading blank lines + lingering separators ("---", "***", "===").
+    while rest and (rest[0].strip() == "" or set(rest[0].strip()) <= {"-", "*", "=", "—", "–", "_"}):
+        rest = rest[1:]
+    if rest:
+        return (first, "\n".join(rest).strip())
     if len(first) <= 80 and len(lines) > 1:
         return (first, "\n".join(lines[1:]).strip())
     return ("Untitled", text.strip())
@@ -373,11 +381,22 @@ def event_brief(event: ChronicleEvent) -> str:
     )
     ctx_block = ""
     if event.world_context:
-        ctx_block = f"WORLD CONTEXT (treat as ground truth):\n{event.world_context.strip()}\n\n"
+        ctx_block = f"WORLD CONTEXT (the chronicle's present compiler):\n{event.world_context.strip()}\n\n"
+    # An eye-catching banner around the event date — local models otherwise
+    # tend to anchor every entry to the WORLD CONTEXT compilation date.
+    date_str = f"{event.year} AD"
+    if event.month and event.day:
+        date_str = f"{event.year}-{event.month:02d}-{event.day:02d} AD"
+    contemp = (
+        f"contemporary_ruler={event.contemporary_ruler}\n"
+        if event.contemporary_ruler else ""
+    )
     return (
         f"{ctx_block}"
+        f"=== EVENT TO CHRONICLE (entry MUST be set in this event's year, NOT the compilation year) ===\n"
+        f"date={date_str}\n"
+        f"{contemp}"
         f"type={event.type.value}\n"
-        f"date={event.year}-{event.month or '?'}-{event.day or '?'}\n"
         f"location={loc_str}\n"
         f"primary_actors={primary}\n"
         f"factions={factions}\n"
