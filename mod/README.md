@@ -4,9 +4,11 @@ The in-game half of the Vox Dynastica project. Adds a **Royal Library** tab to
 the Royal Court window, mounted alongside the vanilla *Throne Room / Court
 Artifacts / Court Grandeur / Court Visuals* tabs.
 
-> **Status:** Phase 1 first cut — GUI + sample entries are in place. The
-> `emit-loc` writer and the save-watching companion are not yet wired; the
-> library currently shows the 6 hand-written Tier-3 sample entries.
+> **Status:** Phase 1 first cut — GUI + sample entries are in place.
+> **Phase 1.1** added the `chronicler emit-loc` writer (LLM → loc YAML), so
+> the library can now be rebuilt from the DB on demand. The save-watching
+> companion (`vox-companion`) that automates that call after each autosave
+> is the remaining Phase 1.1 work.
 
 ## What's in the box
 
@@ -56,17 +58,37 @@ After any GUI edit, in-game console: `reload gui`. After any loc edit:
    (small visual gap).
 2. **Tab icon is a placeholder** (`roco_library.dds` = copy of `roco_grandeur.dds`).
    Custom art TODO before any public release.
-3. **No companion yet** — `chronicler emit-loc` subcommand and the
-   save-watcher tray app are the next two pieces of work.
+3. **Companion is half-done** — the `chronicler emit-loc` subcommand
+   landed in Phase 1.1 (LLM → loc YAML, reverse-chrono, UTF-8 BOM, colour
+   tags wired). The save-watcher tray app that calls it after each
+   autosave is still pending.
 4. **GUI conflicts** — because we ship a full copy of `window_royal_court.gui`,
    we conflict with any other mod that patches the same file. Standard CK3
    GUI-mod tradeoff; document in user-facing README before Workshop release.
 
+## Regenerating the library from the DB (Phase 1.1)
+
+After you've run `chronicler generate` (or `chronicler watch --generate`)
+to build chronicles into a SQLite DB, push them into the in-game library:
+
+```bash
+chronicler emit-loc \
+    --db campaign.db \
+    --mod-dir mod/vox-dynastica \
+    --lang all
+```
+
+This rewrites `localization/english/vox_dynastica_l_english.yml` and
+`localization/simp_chinese/vox_dynastica_l_simp_chinese.yml` with the
+newest 30 `court_historian` entries per language, in reverse chronological
+order (slot 01 = newest), UTF-8 BOM included. In-game, run
+`reload localization` (debug + non-ironman) to pick up the change without
+restarting CK3.
+
 ## Next up
 
-- `chronicler emit-loc --mod-dir <path>` — paginate `ChronicleEntry` objects
-  into the 30 loc slots
 - `vox-companion` tray app — watches `Documents/.../save games/` for autosaves,
-  runs the pipeline, writes loc, posts a tray notification (Tier 2 behaviour;
+  runs the pipeline, calls `emit-loc`, posts a tray notification (Tier 2 behaviour;
   Tier 1 keypress injection deferred to Phase 1.5)
+- Empty-slot hiding via `on_game_start` reading `vd_entry_count` (Phase 1.2)
 - Custom tab icon (DDS, BC3, mip-mapped) once art lands

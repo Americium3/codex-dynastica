@@ -8,6 +8,7 @@ Usage examples:
     chronicler generate --db chronicle.db --from 1066 --to 1200 --lang en,zh
     chronicler generate --db chronicle.db --dry-run             # no API spend
     chronicler render --db chronicle.db --out chronicle.html --lang zh
+    chronicler emit-loc --db chronicle.db --mod-dir mod/vox-dynastica --lang all
     chronicler stats --db chronicle.db
 
 Locale: CLI messages obey CHRONICLER_LOCALE (en|zh). The global
@@ -32,6 +33,7 @@ from .agents import (  # type: ignore[attr-defined]
     build_agents,
 )
 from .agents.base import PRICING
+from .emit_loc import MAX_SLOTS_DEFAULT, collect_entries_from_store, write_mod_loc
 from .generator import generate_range
 from .i18n import _, available_locales, set_locale
 from .parsers.live_hook import ingest_file, watch
@@ -244,6 +246,47 @@ def _cmd_render(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_emit_loc(args: argparse.Namespace) -> int:
+    """Write the Royal Library localization YAML(s) for the CK3 mod.
+
+    Phase 1.1. Pulls chronicles from the DB, picks one row per event
+    (``--agent`` / language), reverse-sorts by year, and writes
+    ``<mod-dir>/localization/<folder>/vox_dynastica_l_<folder>.yml`` with
+    a UTF-8 BOM. Idempotent: re-running produces byte-identical output
+    given the same inputs, so it's safe to wire into a save-watcher.
+    """
+    store = Store(args.db)
+    if args.lang == "all":
+        languages = ["en", "zh"]
+    else:
+        languages = _parse_languages(args.lang)
+    written: dict[str, Path] = {}
+    for lang in languages:
+        entries = collect_entries_from_store(
+            store,
+            agent=args.agent,
+            language=lang,
+            max_entries=args.max_slots,
+            from_year=args.from_year,
+            to_year=args.to_year,
+        )
+        paths = write_mod_loc(
+            Path(args.mod_dir),
+            entries,
+            [lang],
+            max_slots=args.max_slots,
+        )
+        written.update(paths)
+        print(
+            f"emit-loc: wrote {len(entries)} entries (of {args.max_slots} slots) "
+            f"to {paths[lang]}"
+        )
+    if not written:
+        print("emit-loc: nothing written (no languages requested)", file=sys.stderr)
+        return 1
+    return 0
+
+
 def _cmd_stats(args: argparse.Namespace) -> int:
     store = Store(args.db)
     events = store.list_events()
@@ -387,6 +430,40 @@ def build_parser() -> argparse.ArgumentParser:
         help="Which language's chronicles to render. Supported: en, zh. Default: en.",
     )
     pr.set_defaults(func=_cmd_render)
+
+    pe = sub.add_parser(
+        "emit-loc",
+        help="Write the Royal Library localization YAML into a Vox Dynastica "
+             "CK3 mod directory (Phase 1.1).",
+    )
+    pe.add_argument("--db", type=Path, default="chronicle.db")
+    pe.add_argument(
+        "--mod-dir",
+        type=Path,
+        required=True,
+        help="Path to the mod root (the folder that contains descriptor.mod and "
+             "localization/). Typical: .../mod/vox-dynastica.",
+    )
+    pe.add_argument(
+        "--lang",
+        default="all",
+        help="Language(s) to write. Comma-separated (en,zh) or 'all'. Default: all.",
+    )
+    pe.add_argument(
+        "--agent",
+        default="court_historian",
+        help="Which agent's chronicles to surface. Default: court_historian "
+             "(the voice the Royal Library is themed around).",
+    )
+    pe.add_argument(
+        "--max-slots",
+        type=int,
+        default=MAX_SLOTS_DEFAULT,
+        help=f"Number of GUI slots to fill (must match the .gui file). Default: {MAX_SLOTS_DEFAULT}.",
+    )
+    pe.add_argument("--from", dest="from_year", type=int, default=None)
+    pe.add_argument("--to", dest="to_year", type=int, default=None)
+    pe.set_defaults(func=_cmd_emit_loc)
 
     ps = sub.add_parser("stats", help="Print summary of stored events and cost.")
     ps.add_argument("--db", type=Path, default="chronicle.db")
