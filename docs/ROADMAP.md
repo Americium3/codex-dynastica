@@ -95,7 +95,33 @@ Phase 0.3 and 0.4 shipped several hundred lines (`scoring.py`, `ScopePreset`, er
 - [x] **Lifted `stamp_era_mood` + `DARK_EVENT_TYPES` to `chronicler.scoring`** — previously buried inside `scripts/import_dynasty.py` where it couldn't be imported by tests. Importer now calls into the shared module.
 - Result: pytest 6 → **59 tests**, ~10× the coverage. All green; ruff clean.
 
-## Phase 1 — In-game Royal Library UI + cloud-API picker
+## Phase 1 v0.1 — Royal Library in-game UI (GUI-only) ✅
+
+First shippable mod artefact. The Royal Court window grows a fifth tab — *Royal Library* — that opens a parchment-styled overlay listing up to 30 dynastic-chronicle entries in reverse chronological order. Bilingual EN + zh-CN from day one. Merged via PR [#6](https://github.com/Americium3/vox-dynastica/pull/6).
+
+- [x] `mod/vox-dynastica/` mod skeleton (in-mod `descriptor.mod` + user-side `vox_dynastica.mod`)
+- [x] `gui/window_royal_court.gui` — full vanilla file copy + Royal Library tab button (uses `VariableSystem` toggle, not the hardcoded `SetActiveTab` enum)
+- [x] `gui/window_royal_library.gui` — parchment overlay: layered backgrounds, period-appropriate `MapFont`, decorative scroll edges, divider per card, scrollbox of 30 entry slots
+- [x] `gui/preload/vd_textformatting.gui` — four ink-tone inline colour tags (`color_vd_ink`, `color_vd_ink_body`, `color_vd_ink_subtitle`, `color_vd_cinnabar`)
+- [x] Bilingual sample loc (6 curated entries, slots 07–30 empty placeholders)
+- [x] Placeholder tab icon (`roco_library.dds`, currently a copy of `roco_grandeur`)
+- [x] 8 engine constraints documented in `mod/README.md` (no partial GUI patches, MapFont fallback chain, inline colour tags only, UTF-8 BOM on loc, etc.)
+- [ ] Custom tab icon to replace the placeholder (deferred to a later cosmetic pass)
+- [ ] Empty-slot hiding via `on_game_start` reading `vd_entry_count` (Phase 1.2)
+
+## Phase 1.1 — `emit-loc` CLI (LLM → CK3 loc writer) ✅
+
+The "writer" end of the bridge between the LLM pipeline and the Royal Library's 30 hardcoded slots. Pure Python, no game-side companion yet.
+
+- [x] **`chronicler emit-loc --mod-dir <path>` subcommand** — pulls chronicles from the DB, picks one row per event for the chosen agent/language, reverse-sorts by year, writes `localization/<folder>/vox_dynastica_l_<folder>.yml` with the required UTF-8 BOM.
+- [x] **Pure `render_loc_yaml()`** — separates "format the bytes" from "decide what to render" so tests can pin engine-contract invariants without filesystem I/O.
+- [x] **`LocEntry` dataclass + `collect_entries_from_store()`** — defines the projection from event-keyed / chronicle-keyed `Store` rows to entry-keyed library slots. Single point of change when the projection evolves.
+- [x] **Inline colour tags wired** — year → `#color_vd_cinnabar`, title → `#color_vd_ink`, body → `#color_vd_ink_body`, matching the Phase 1 GUI contract.
+- [x] **`vd_entry_count` key emitted** — gives Phase 1.2's empty-slot hider a single integer to bind against.
+- [x] **28 new tests** (`tests/test_emit_loc.py`) — engine-contract pins (BOM, key shape, no tabs, reverse-chrono order, CJK round-trip, empty-slot rendering, idempotency) and Store-projection coverage (agent filter, language filter, year window, max-entries truncation, empty-chronicle skip). Total suite 59 → **87 tests**.
+- [ ] **`vox-companion` tray app** — watches `Documents/.../save games/` for autosaves, runs the pipeline, calls `emit-loc`, posts a tray notification (Tier 2 behaviour). Tier 1 keypress injection deferred to Phase 1.5. Lands in Phase 1.1's *second* PR.
+
+## Phase 1.x — In-game polish + cloud-API picker
 
 Hard requirement: **visually indistinguishable from vanilla CK3**. It should feel like an official DLC, not a modder add-on. Adds RimTalk-style provider/key/model selection in mod settings so players can use any cloud LLM (or keep using their local Ollama).
 

@@ -14,7 +14,9 @@ CK3's biggest narrative gap is that 300 years of play produce no real *history*.
 - **Phase 0.3 — Significance-based event selection + `era_mood` ballad bias + imagery library ×20.** ✅ done.
 - **Phase 0.4 — Real-time event ingest via live-hook + tiered selectivity presets.** ✅ done.
 - **Phase 0.5 — CI bootstrap (ruff + pytest on GitHub Actions) + test backfill (6 → 59 tests).** ✅ done (this revision).
-- **Phase 1 — In-game Royal Library UI (vanilla-fidelity) + cloud-API picker (RimTalk style).** 🚧 not started.
+- **Phase 1 v0.1 — Royal Library in-game UI (vanilla-fidelity, EN + zh-CN).** ✅ done (PR [#6](https://github.com/Americium3/vox-dynastica/pull/6)).
+- **Phase 1.1 — `emit-loc` CLI (LLM → CK3 localization YAML writer, 28 new tests).** ✅ done (this revision). Tray-app companion still to come.
+- **Phase 1.x — Cloud-API picker (RimTalk style) + in-game polish.** 🚧 not started.
 - **Phase 2 — Enemy + Church perspectives.** 🚧 not started.
 - **Phase 3 — Historical drift, physical carriers, gameplay reverse hooks.** 🚧 not started.
 
@@ -54,6 +56,10 @@ ollama pull gemma3:27b
 chronicler generate --db demo.db --backend ollama --ollama-model gemma3:27b --lang en,zh
 chronicler render --db demo.db --out demo_en.html --lang en
 chronicler render --db demo.db --out demo_zh.html --lang zh
+
+# Phase 1.1 — write the chronicles into the CK3 mod's loc YAML
+# (newest 30 entries per language, reverse chronological, UTF-8 BOM):
+chronicler emit-loc --db demo.db --mod-dir mod/vox-dynastica --lang all
 
 # Cloud (Anthropic) instead:
 export ANTHROPIC_API_KEY=sk-ant-...
