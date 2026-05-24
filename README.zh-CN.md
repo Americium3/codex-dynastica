@@ -15,7 +15,8 @@
 - **Phase 0.4 — live-hook 实时事件采集 + 分层严格度预设** ✅ 完成
 - **Phase 0.5 — CI 自动化（GitHub Actions ruff + pytest）+ 测试补齐（6→59 测）** ✅ 完成（本次提交）
 - **Phase 1 v0.1 —— 游戏内王室图书馆 UI（原生风格，EN + zh-CN 双语）** ✅ 已完成（PR [#6](https://github.com/Americium3/vox-dynastica/pull/6)）
-- **Phase 1.1 —— `emit-loc` CLI（LLM → CK3 loc YAML 写入器，新增 28 条测试）** ✅ 本次提交完成；托盘伴随程序待跟进
+- **Phase 1.1 —— `emit-loc` CLI（LLM → CK3 loc YAML 写入器，新增 28 条测试）** ✅ 已完成
+- **Phase 1.2 —— `vox-companion` 存档监听托盘程序（CK3 每写存档即自动刷新王室图书馆，新增 17 条测试）** ✅ 本次提交完成
 - **Phase 1.x —— 云端 API 选择器（RimTalk 模式）+ 游戏内打磨** 🚧 未开始
 - **Phase 2 — 敌国 + 教会视角** 🚧 未开始
 - **Phase 3 — 历史漂移 + 物理载体 + Gameplay 反向钩子** 🚧 未开始
@@ -60,6 +61,13 @@ chronicler render --db demo.db --out demo_zh.html --lang zh
 # Phase 1.1 —— 把编年写进 CK3 mod 的 loc YAML
 # （每种语言取最新 30 条、倒序、带 UTF-8 BOM）：
 chronicler emit-loc --db demo.db --mod-dir mod/vox-dynastica --lang all
+
+# Phase 1.2 —— 后台跑伴随程序，CK3 每写一次 autosave 就自动刷新王室图书馆。
+# 托盘 UI（Windows）：
+pip install 'vox-dynastica[companion]'
+chronicler companion --mod-dir mod/vox-dynastica --db campaign.db
+# 无头模式（不需要 pystray，适合 WSL / CI / 服务器）：
+chronicler companion --mod-dir mod/vox-dynastica --db campaign.db --no-tray
 
 # 走 Anthropic 云端：
 export ANTHROPIC_API_KEY=sk-ant-...

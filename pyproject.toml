@@ -30,6 +30,12 @@ dev = [
     "pytest>=8.0",
     "ruff>=0.5",
 ]
+# Phase 1.2: optional system-tray UI for `chronicler companion`. The
+# headless `--no-tray` mode needs none of these.
+companion = [
+    "pystray>=0.19",
+    "Pillow>=10",
+]
 
 [project.scripts]
 chronicler = "chronicler.cli:main"

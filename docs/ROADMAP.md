@@ -119,7 +119,20 @@ The "writer" end of the bridge between the LLM pipeline and the Royal Library's 
 - [x] **Inline colour tags wired** — year → `#color_vd_cinnabar`, title → `#color_vd_ink`, body → `#color_vd_ink_body`, matching the Phase 1 GUI contract.
 - [x] **`vd_entry_count` key emitted** — gives Phase 1.2's empty-slot hider a single integer to bind against.
 - [x] **28 new tests** (`tests/test_emit_loc.py`) — engine-contract pins (BOM, key shape, no tabs, reverse-chrono order, CJK round-trip, empty-slot rendering, idempotency) and Store-projection coverage (agent filter, language filter, year window, max-entries truncation, empty-chronicle skip). Total suite 59 → **87 tests**.
-- [ ] **`vox-companion` tray app** — watches `Documents/.../save games/` for autosaves, runs the pipeline, calls `emit-loc`, posts a tray notification (Tier 2 behaviour). Tier 1 keypress injection deferred to Phase 1.5. Lands in Phase 1.1's *second* PR.
+- [x] **`vox-companion` tray app** — landed in Phase 1.2 (see below).
+
+## Phase 1.2 — `vox-companion` save-watcher tray app ✅
+
+Closes the Tier-2 automation loop. The player launches the companion once; from then on every CK3 autosave triggers a pipeline run that refreshes the in-game Royal Library.
+
+- [x] **`chronicler.companion` core module** — `CompanionConfig` (constructor-injected, no globals), `SaveWatcher` (stdlib polling with size+mtime debounce; resets on growth, fires once per stable signature, won't re-fire on pre-existing files), `run_pipeline_once()` (parse → store → generate → emit-loc) returning a frozen `RunReport` (errors caught and reported, not raised), `run_headless()` console loop.
+- [x] **`chronicler.tray` optional UI** — pystray + Pillow wrapper. Tray menu: status line (read-only), Pause toggle, "Re-run on latest save" manual trigger, Open mod loc folder, Open save-games folder, Quit. Cross-platform open-folder helper (Windows `os.startfile` / macOS `open` / Linux `xdg-open`). Watcher runs on a daemon thread so the menu stays responsive.
+- [x] **`chronicler companion` CLI subcommand** — `--mod-dir`, `--db`, `--save-dir` (auto-detects Paradox layout per OS), `--lang`, `--agent`, `--max-slots`, `--poll-interval`, `--stable-polls`, `--backend` (default `dry-run` — the companion **never** burns API tokens silently), `--no-tray` for headless.
+- [x] **Optional dep group** — `pip install 'vox-dynastica[companion]'` pulls pystray + Pillow. Core install stays slim; CI stays display-free.
+- [x] **Ironman-safe** — process only *reads* save files and only *writes* inside the mod's `localization/` folder. Never touches the save directory in write mode.
+- [x] **17 new tests** (`tests/test_companion.py`) — watcher debounce under hand-driven ticks (priming behaviour, stable-polls threshold, no-refire on same sig, refire on rewrite, hold-while-growing, pause, glob filter, callback-exception isolation, missing dir, fired-paths return value), pipeline runner (writes loc + returns report, catches parse errors, skips LLM when no new events), config defaults (Windows USERPROFILE branch, POSIX fallback), `RunReport` immutability. Total suite 87 → **104 tests**.
+- [ ] **Tier 1 keypress injection** — sending `reload localization` to the running CK3 process via SendInput / xdotool. Deferred to Phase 1.5; for now the player runs the console command manually after the tray balloon fires.
+- [ ] **Service / autostart integration** — Windows Task Scheduler / systemd user unit packaging. Deferred until the cloud-API picker lands, since the autostart story is most useful with `--backend claude` configured.
 
 ## Phase 1.x — In-game polish + cloud-API picker
 

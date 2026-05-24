@@ -15,7 +15,8 @@ CK3's biggest narrative gap is that 300 years of play produce no real *history*.
 - **Phase 0.4 — Real-time event ingest via live-hook + tiered selectivity presets.** ✅ done.
 - **Phase 0.5 — CI bootstrap (ruff + pytest on GitHub Actions) + test backfill (6 → 59 tests).** ✅ done (this revision).
 - **Phase 1 v0.1 — Royal Library in-game UI (vanilla-fidelity, EN + zh-CN).** ✅ done (PR [#6](https://github.com/Americium3/vox-dynastica/pull/6)).
-- **Phase 1.1 — `emit-loc` CLI (LLM → CK3 localization YAML writer, 28 new tests).** ✅ done (this revision). Tray-app companion still to come.
+- **Phase 1.1 — `emit-loc` CLI (LLM → CK3 localization YAML writer, 28 new tests).** ✅ done.
+- **Phase 1.2 — `vox-companion` save-watcher tray app (auto-refresh the Royal Library when CK3 writes a save, 17 new tests).** ✅ done (this revision).
 - **Phase 1.x — Cloud-API picker (RimTalk style) + in-game polish.** 🚧 not started.
 - **Phase 2 — Enemy + Church perspectives.** 🚧 not started.
 - **Phase 3 — Historical drift, physical carriers, gameplay reverse hooks.** 🚧 not started.
@@ -60,6 +61,13 @@ chronicler render --db demo.db --out demo_zh.html --lang zh
 # Phase 1.1 — write the chronicles into the CK3 mod's loc YAML
 # (newest 30 entries per language, reverse chronological, UTF-8 BOM):
 chronicler emit-loc --db demo.db --mod-dir mod/vox-dynastica --lang all
+
+# Phase 1.2 — run the companion in the background; it auto-refreshes the
+# Royal Library every time CK3 writes an autosave. Tray UI (Windows):
+pip install 'vox-dynastica[companion]'
+chronicler companion --mod-dir mod/vox-dynastica --db campaign.db
+# Headless mode (no pystray needed, useful on WSL / CI / servers):
+chronicler companion --mod-dir mod/vox-dynastica --db campaign.db --no-tray
 
 # Cloud (Anthropic) instead:
 export ANTHROPIC_API_KEY=sk-ant-...

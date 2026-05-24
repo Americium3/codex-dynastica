@@ -119,9 +119,22 @@ LLM 流水线 → 王室图书馆 30 硬编码槽位之间的"写"端。纯 Pyth
 - [x] **行内 color 标签接好** —— 年份 → `#color_vd_cinnabar`，标题 → `#color_vd_ink`，正文 → `#color_vd_ink_body`，对齐 Phase 1 GUI 契约
 - [x] **导出 `vd_entry_count` key** —— 给 Phase 1.2 的"隐藏空槽位"绑定提供单一整数
 - [x] **新增 28 条测试**（`tests/test_emit_loc.py`）—— 引擎契约（BOM、key 形状、不准 tab、倒序、CJK round-trip、空槽位渲染、idempotency）+ Store 投影覆盖（agent 过滤、语言过滤、年份窗口、`max_entries` 截断、空 chronicle 跳过）。总测试数 59 → **87**
-- [ ] **`vox-companion` 托盘程序** —— 监听 `Documents/.../save games/` 的自动存档，跑流水线，调 `emit-loc`，托盘通知（Tier 2 行为）。Tier 1 keypress 注入推后到 Phase 1.5。归入 Phase 1.1 的*第二个* PR
+- [x] **`vox-companion` 托盘程序** —— 已在 Phase 1.2 落地（详见下方）
 
-## Phase 1.x — 游戏内打磨 + 云端 API 选择器
+## Phase 1.2 —— `vox-companion` 存档监听托盘程序 ✅
+
+闭合 Tier-2 自动化回路。玩家启动一次伴随程序后，CK3 每写 autosave 都会触发流水线，刷新游戏内王室图书馆。
+
+- [x] **`chronicler.companion` 核心模块** —— `CompanionConfig`（构造函数注入，零全局变量）、`SaveWatcher`（stdlib polling，size+mtime 防抖；文件还在写时重置、稳定签名只 fire 一次、启动前已存在的文件不会被当作新事件触发）、`run_pipeline_once()`（解析 → store → 生成 → emit-loc）返回 frozen `RunReport`（错误进 report，不抛出）、`run_headless()` 控制台循环
+- [x] **`chronicler.tray` 可选 UI** —— pystray + Pillow 包装。托盘菜单：状态行（只读）、Pause toggle、"对最新存档手动重跑"、打开 mod loc 目录、打开存档目录、退出。跨平台打开目录助手（Windows `os.startfile` / macOS `open` / Linux `xdg-open`）。watcher 跑在 daemon 线程，菜单始终响应
+- [x] **`chronicler companion` CLI 子命令** —— `--mod-dir`、`--db`、`--save-dir`（按 OS 自动猜 Paradox 布局）、`--lang`、`--agent`、`--max-slots`、`--poll-interval`、`--stable-polls`、`--backend`（默认 `dry-run` —— 伴随程序**绝不**默默烧 API token）、`--no-tray` 无头模式
+- [x] **可选依赖组** —— `pip install 'vox-dynastica[companion]'` 拉 pystray + Pillow。核心安装保持轻量，CI 无需显示器
+- [x] **Ironman 安全** —— 进程只*读*存档文件，只*写* mod 的 `localization/` 目录，从不以写模式触碰存档目录
+- [x] **新增 17 条测试**（`tests/test_companion.py`）—— 手动驱动 tick 测 watcher 防抖（priming 行为、stable-polls 阈值、同签名不重 fire、改写后重 fire、写入中不 fire、暂停、glob 过滤、回调异常不杀循环、目录缺失、fired-paths 返回值）、pipeline runner（写 loc + 返回 report、捕获 parse 错误、无新事件时跳过 LLM 调用）、config 默认值（Windows USERPROFILE 分支、POSIX 后备）、`RunReport` immutable。总测试数 87 → **104**
+- [ ] **Tier 1 keypress 注入** —— 通过 SendInput / xdotool 向运行中的 CK3 进程发 `reload localization`。推后到 Phase 1.5；目前玩家在托盘通知后手动跑一次控制台命令
+- [ ] **服务化 / 开机自启** —— Windows 任务计划程序 / systemd user unit 打包。推后到云端 API 选择器落地之后，因为有 `--backend claude` 配好以后自启才有意义
+
+## Phase 1.x —— 游戏内打磨 + 云端 API 选择器
 
 硬性要求：**与原生 CK3 视觉无法区分**。应该让玩家感觉这就是 Paradox 自己出的 DLC。同时在模组设置里加入 RimTalk 风格的 provider/key/model 选择器，玩家可自选云端 LLM（或继续用本地 Ollama）。
 

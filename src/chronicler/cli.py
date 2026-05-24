@@ -9,6 +9,8 @@ Usage examples:
     chronicler generate --db chronicle.db --dry-run             # no API spend
     chronicler render --db chronicle.db --out chronicle.html --lang zh
     chronicler emit-loc --db chronicle.db --mod-dir mod/vox-dynastica --lang all
+    chronicler companion --mod-dir mod/vox-dynastica --db chronicle.db   # tray
+    chronicler companion --mod-dir mod/vox-dynastica --no-tray            # headless
     chronicler stats --db chronicle.db
 
 Locale: CLI messages obey CHRONICLER_LOCALE (en|zh). The global
@@ -33,6 +35,7 @@ from .agents import (  # type: ignore[attr-defined]
     build_agents,
 )
 from .agents.base import PRICING
+from .companion import CompanionConfig, run_headless
 from .emit_loc import MAX_SLOTS_DEFAULT, collect_entries_from_store, write_mod_loc
 from .generator import generate_range
 from .i18n import _, available_locales, set_locale
@@ -287,6 +290,57 @@ def _cmd_emit_loc(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_companion(args: argparse.Namespace) -> int:
+    """Phase 1.2: vox-companion save-watcher.
+
+    Watches the CK3 save-games directory; whenever a save finishes being
+    written, runs the pipeline (parse -> store -> generate -> emit-loc) and
+    refreshes the Royal Library loc YAML. By default shows a system-tray
+    icon with a menu; pass ``--no-tray`` for a headless console loop
+    (useful on CI / servers / WSL).
+    """
+    config = CompanionConfig(
+        mod_dir=Path(args.mod_dir),
+        db_path=Path(args.db),
+        save_dir=Path(args.save_dir) if args.save_dir else CompanionConfig.default_save_dir(),
+        languages=_parse_languages(args.lang) if args.lang != "all" else ["en", "zh"],
+        agent=args.agent,
+        max_slots=args.max_slots,
+        poll_interval=args.poll_interval,
+        stable_polls=args.stable_polls,
+        backend=args.backend or "dry-run",
+        ollama_model=args.ollama_model,
+        ollama_url=args.ollama_url,
+    )
+    if not config.save_dir.exists():
+        print(
+            f"companion: save directory does not exist: {config.save_dir}",
+            file=sys.stderr,
+        )
+        return 2
+    if not config.mod_dir.exists():
+        print(
+            f"companion: mod directory does not exist: {config.mod_dir}",
+            file=sys.stderr,
+        )
+        return 2
+    if args.no_tray:
+        run_headless(config)
+        return 0
+    try:
+        from .tray import run_tray
+    except ImportError as exc:
+        print(
+            f"companion: tray UI unavailable ({exc}).\n"
+            "Install with `pip install 'vox-dynastica[companion]'` or "
+            "pass `--no-tray` for a headless console loop.",
+            file=sys.stderr,
+        )
+        return 2
+    run_tray(config)
+    return 0
+
+
 def _cmd_stats(args: argparse.Namespace) -> int:
     store = Store(args.db)
     events = store.list_events()
@@ -464,6 +518,60 @@ def build_parser() -> argparse.ArgumentParser:
     pe.add_argument("--from", dest="from_year", type=int, default=None)
     pe.add_argument("--to", dest="to_year", type=int, default=None)
     pe.set_defaults(func=_cmd_emit_loc)
+
+    pc = sub.add_parser(
+        "companion",
+        help="Phase 1.2: vox-companion save-watcher tray app (auto-refresh the "
+             "Royal Library when CK3 writes a save).",
+    )
+    pc.add_argument(
+        "--mod-dir",
+        type=Path,
+        required=True,
+        help="Mod root (the folder containing descriptor.mod + localization/).",
+    )
+    pc.add_argument("--db", type=Path, default="chronicle.db")
+    pc.add_argument(
+        "--save-dir",
+        type=Path,
+        default=None,
+        help="CK3 save-games directory. Default: Paradox install layout for this OS.",
+    )
+    pc.add_argument(
+        "--lang",
+        default="all",
+        help="Languages to write. Comma-separated (en,zh) or 'all'. Default: all.",
+    )
+    pc.add_argument("--agent", default="court_historian")
+    pc.add_argument("--max-slots", type=int, default=MAX_SLOTS_DEFAULT)
+    pc.add_argument(
+        "--poll-interval",
+        type=float,
+        default=2.0,
+        help="Seconds between save-dir scans. Default 2.0.",
+    )
+    pc.add_argument(
+        "--stable-polls",
+        type=int,
+        default=2,
+        help="A file must be unchanged for this many consecutive ticks before "
+             "we treat the write as complete. Default 2.",
+    )
+    pc.add_argument(
+        "--backend",
+        choices=["claude", "ollama", "dry-run"],
+        default="dry-run",
+        help="LLM backend. Default dry-run -- companion must NEVER burn API "
+             "tokens silently; opt in explicitly.",
+    )
+    pc.add_argument("--ollama-model", default="gemma3:27b")
+    pc.add_argument("--ollama-url", default="http://localhost:11434")
+    pc.add_argument(
+        "--no-tray",
+        action="store_true",
+        help="Run as a console loop instead of a tray icon (no pystray needed).",
+    )
+    pc.set_defaults(func=_cmd_companion)
 
     ps = sub.add_parser("stats", help="Print summary of stored events and cost.")
     ps.add_argument("--db", type=Path, default="chronicle.db")

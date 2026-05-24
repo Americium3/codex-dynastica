@@ -6,9 +6,11 @@ Artifacts / Court Grandeur / Court Visuals* tabs.
 
 > **Status:** Phase 1 first cut — GUI + sample entries are in place.
 > **Phase 1.1** added the `chronicler emit-loc` writer (LLM → loc YAML), so
-> the library can now be rebuilt from the DB on demand. The save-watching
-> companion (`vox-companion`) that automates that call after each autosave
-> is the remaining Phase 1.1 work.
+> the library can be rebuilt from the DB on demand. **Phase 1.2** added
+> `vox-companion`, a tray-icon save-watcher that automates that call after
+> every CK3 autosave (Tier 2 of the install ladder). Tier 1 keypress
+> injection (auto `reload localization` to the running game) is the
+> remaining Phase 1.x work.
 
 ## What's in the box
 
@@ -58,10 +60,11 @@ After any GUI edit, in-game console: `reload gui`. After any loc edit:
    (small visual gap).
 2. **Tab icon is a placeholder** (`roco_library.dds` = copy of `roco_grandeur.dds`).
    Custom art TODO before any public release.
-3. **Companion is half-done** — the `chronicler emit-loc` subcommand
-   landed in Phase 1.1 (LLM → loc YAML, reverse-chrono, UTF-8 BOM, colour
-   tags wired). The save-watcher tray app that calls it after each
-   autosave is still pending.
+3. **Companion is done (Tier 2)** — Phase 1.1 shipped `chronicler emit-loc`
+   (LLM → loc YAML); Phase 1.2 shipped `chronicler companion`, a tray-icon
+   save-watcher that runs the pipeline + emit-loc every time CK3 writes
+   an autosave. Tier 1 (keypress-inject `reload localization` to the
+   running game) is deferred to Phase 1.5.
 4. **GUI conflicts** — because we ship a full copy of `window_royal_court.gui`,
    we conflict with any other mod that patches the same file. Standard CK3
    GUI-mod tradeoff; document in user-facing README before Workshop release.
@@ -85,10 +88,23 @@ order (slot 01 = newest), UTF-8 BOM included. In-game, run
 `reload localization` (debug + non-ironman) to pick up the change without
 restarting CK3.
 
+## Running the companion (Phase 1.2)
+
+```bash
+pip install 'vox-dynastica[companion]'                           # tray UI deps
+chronicler companion --mod-dir mod/vox-dynastica --db campaign.db
+# or, on a headless box (WSL / CI / server):
+chronicler companion --mod-dir mod/vox-dynastica --db campaign.db --no-tray
+```
+
+The tray icon shows a status line; the menu offers Pause / Re-run on latest
+save / Open mod loc folder / Open save-games folder / Quit. Default backend
+is `dry-run` so the companion can't quietly burn API tokens — opt into
+`--backend claude` or `--backend ollama` once you trust the setup.
+
 ## Next up
 
-- `vox-companion` tray app — watches `Documents/.../save games/` for autosaves,
-  runs the pipeline, calls `emit-loc`, posts a tray notification (Tier 2 behaviour;
-  Tier 1 keypress injection deferred to Phase 1.5)
-- Empty-slot hiding via `on_game_start` reading `vd_entry_count` (Phase 1.2)
+- Tier 1: keypress-inject `reload localization` to the running CK3 process
+  (Phase 1.5) so the player doesn't have to alt-tab and type it
+- Empty-slot hiding via `on_game_start` reading `vd_entry_count`
 - Custom tab icon (DDS, BC3, mip-mapped) once art lands
