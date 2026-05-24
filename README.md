@@ -2,6 +2,14 @@
 
 **English** · [简体中文](README.zh-CN.md)
 
+> ## ⚠️ ABANDONED — 2026-05-23
+>
+> This project is **no longer being developed** and the repository has been **archived** on GitHub (read-only).
+>
+> Phases 0 through 1.2 shipped (end-to-end pipeline, Royal Library in-game UI, `emit-loc` CLI, `vox-companion` save-watcher tray app — 104 tests, all green at time of archival), but the project has been retired before reaching the cloud-API picker, enemy/church perspectives, or historical-drift phases.
+>
+> The code is left online as reference / fork material; no issues or pull requests will be reviewed. If you want to continue the work, fork freely under the MIT license — please don't open issues here.
+
 > Voice of the dynasty — an AI-driven **dynastic chronicle** companion for Crusader Kings 3.
 
 CK3's biggest narrative gap is that 300 years of play produce no real *history*. Generic event text repeats. Your dynasty has no remembered past. **Vox Dynastica** uses large language models to generate living, biased, contradictory chronicles of the same events — court histories, peasant ballads, and (in later phases) enemy histories and church records — so the same war can be remembered as a holy victory in one chamber and a tax raid in another village.
